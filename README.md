@@ -1,92 +1,167 @@
-# STS Lite 0.2.11
-Two independent mono varispeed samplers, A (left output) and B (right output).
-Both keep their own sample selection, 16 pitch values and trigger gates.
-The second-row rightmost pad switches the editing target; both continue playing.
-Uses the shared STS playback engine (Hermite interpolation, no time stretching).
+# STS Lite
 
-## Performance UI
-Open STS Lite's component editor in Schwung. It uses the shared knob-page UI.
-While this screen is visible all 32 pads are blocked from native Move playback.
-Leaving restores native pad ownership and LEDs.
+Ableton Move上の [Schwung](https://github.com/charlesvestal/schwung) 用サウンドジェネレーターです。2つの独立したサンプラー **A** と **B** が、Moveの再生に合わせて16分音符ごとにサンプルを頭から鳴らし直します（リトリガー）。
 
-| Control | Action |
+- **バリスピード**：ピッチはタイムストレッチなしで、テープやレコードと同じく再生速度ごと変わります。下げるほど遅く低く、上げるほど速く高くなります。
+- **ステップごとのピッチ**：A・Bそれぞれ16ステップ分のピッチを持ち、ノブ8を回しながらリアルタイムに書き込めます（モーション録音）。
+- **出力**：Aは左、Bは右から出ます。
+
+A・Bはサンプル、ピッチのパターン、ステップのON/OFF、音量をそれぞれ別に持ち、画面で編集していない方も止まらずに鳴り続けます。
+
+## インストール
+
+### リリースから入れる（おすすめ）
+
+1. [Releases](../../releases) から最新の `sts-lite-module.tar.gz` をダウンロードします。
+2. Schwung Manager（`http://<MoveのIP>:7700`）の Modules →「Install custom」で、そのファイルをアップロードします。
+   このリポジトリを手元に置いているなら、`scripts/install.py http://<MoveのIP>:7700 --package sts-lite-module.tar.gz` でも同じです。
+3. **Moveの電源を一度入れ直します。**
+
+### ソースからビルドして入れる
+
+aarch64用のクロスコンパイラ（`gcc-aarch64-linux-gnu`）とPython 3が必要です。
+
+```bash
+scripts/build.sh arm64                             # dist/sts-lite-module.tar.gz を作成
+python3 scripts/install.py http://<MoveのIP>:7700  # Schwung Manager経由でアップロード
+```
+
+> **更新したら必ずMoveの電源を入れ直してください。** 一度読み込まれたDSP（dsp.so）は、スロットを読み直しても入れ替わりません。
+
+## 使い始め
+
+1. サンプルを置きます（「サンプル」の節）。最初から入っているサンプルはありません。
+2. スロットのシンセにSTS Liteを読み込み、そのシンセを開くと専用画面になり、32個のPADがSTS Liteの操作面に変わります。
+3. MoveのPlayで再生すると、A・Bが16分音符ごとに鳴り始めます。**Moveが止まっている間は鳴りません。**
+
+画面を離れても（Back、Menu、トラック長押し）鳴り続け、PADとその色はMoveに戻ります。STS LiteはMIDIノートには反応しません。音を出すのは内蔵のステップだけです。
+
+## 画面
+
+一番上の行に、今の状態が出ます。
+
+```
+A01 P-24 3/8 ARM
+```
+
+| 表示 | 意味 |
 | --- | --- |
-| Top-right pad (99) | Motion recording on/off: bright red on, dim red off |
-| Adjacent pad (98) | New pitch phrase for the selected sound |
-| Second row from top, rightmost (91) | Switch edit sound A/B |
-| Second row from top, leftmost (84) + bottom pads | Hold 84 and choose sample 1-8 on pads 68-75, or 9-10 on pads 76-77 |
-| Bottom row (68-75) | Toggle trigger steps 1-8 |
-| Next row up (76-83) | Toggle trigger steps 9-16 in 16-step mode |
-| K1 | Selected sound's volume (0-100%) |
-| K2-K7 | Unassigned |
-| K8 | Selected sound's pitch, one scale degree per encoder detent |
-| Jog page 2 | Base pitch, root, scale, 8/16 steps |
+| `A01` | 編集中の音（A / B）とサンプル番号（01〜10） |
+| `P-24` | 今鳴っているピッチ（半音。0がサンプル本来の速さ） |
+| `3/8` | 再生中のステップ / ステップ数。止まっている時は `STOP` |
+| `ARM` / `REC` | 録音待機中 / ノブ8に触れて書き込み中（録音OFFの時は何も出ません） |
 
-The K2-K7 gaps are applied only while handling input and drawing the page.
-They are not stored in the shared page controller, whose contract refresh
-expects every stored page key to name a parameter.
-K8 preserves multi-detent relative CC values during fast turns; the shared
-generic input path reduces those values to a single direction step.
-K8 release flushes the controller's pending final pitch before closing the DSP
-touch gate, so a last-second turn is recorded into the current step.
+サンプル選択中（下記）は `SAMPLE A 01/10` に変わります。
 
-Recording starts disarmed. It writes pitch only when armed, K8 is touched,
-and transport is running. Holding K8 writes its current pitch across steps.
-Touch refresh expires after half a second if the UI disappears.
-Sample/volume are live controls, not motion lanes.
-The K8 widget shows the current step's recorded pitch as a moving live value,
-while its base pointer remains at the pitch selected by the encoder. The
-header also shows the currently playing semitone and selected sample number.
-The randomizer uses MANIAC's six Phrase Gen source phrases and 50% mutation,
-folded into the configured pitch range and scale. It leaves trigger gates intact.
+## PAD
 
-Quantization is at INPUT: K8 indexes a table of valid notes. Playback uses the
-saved semitone values directly. Changing the scale does not rewrite a recorded
-phrase. An OFF trigger cuts that voice for that step. Tempo is shared, 1/16 per
-step; transport stop silences both voices. Every cut -- a retrigger, an OFF
-trigger, a sample's end and a transport stop -- ramps out over 64 frames
-(~1.5 ms) instead of jumping, so steps do not click.
-The module declares requires_continuous_processing: it keeps its own time and
-receives no MIDI, so the slot must not be idle-parked (a parked slot renders
-one block in 172, which made the first steps after Play late).
-Pitch range is fixed at the maximum five octaves (60 semitones), including
-when loading older presets. State v3 stores both full 16-step pitch/gate
-patterns, volumes, sample choices, scale/base, length and edit target.
-Old eight-step states remain readable.
-Armed/touched states are transient and never restored armed.
-
-## Samples
-Persistent paths (unchanged):
-- /data/UserData/UserLibrary/Samples/STS Lite/left/01.wav through 10.wav
-- /data/UserData/UserLibrary/Samples/STS Lite/right/01.wav through 10.wav
-
-These paths are outside the module installation. Module-local samples/left and
-samples/right remain fallbacks. PCM16/24/32 and float32 WAV, mono or stereo
-(downmixed during preload), 1-384 kHz. Only the first five seconds of a file
-are loaded; the rest is ignored. A data chunk that claims more than the file
-holds keeps what is actually there.
-Samples are loaded on a worker; switching chooses a preloaded slot at retrigger.
-Removing the module abandons a load in progress between 4096-frame chunks.
-On load, the mono signal is trimmed to its first audible frame (a -80 dBFS
-floor and -60 dB relative-to-peak threshold), then peak-normalized to 0.98.
-Files below the silence floor are left silent rather than amplifying noise.
-The WAV files on disk are not changed; a module reload reprocesses them.
-
-## Build, test, install
 ```
-scripts/test.sh                       # engine (ASan/UBSan), UI, Move ABI check
-scripts/build.sh arm64                # dist/sts-lite-module.tar.gz
-scripts/install.py http://move.local:7700   # upload via Schwung Manager
+1段目  [ -- ][ -- ][ -- ][ -- ][ -- ][ -- ][RANDOM][REC]
+2段目  [SAMPLE][ -- ][ -- ][ -- ][ -- ][ -- ][ -- ][A/B]
+3段目  16ステップ時：ステップ9-16
+4段目  ステップ1-8
 ```
-A release tarball (GitHub Releases) installs the same way:
-`scripts/install.py http://move.local:7700 --package sts-lite-module.tar.gz`.
-Restart Move after installing. The UI test runs the real Schwung page
-controller and framebuffer, so it needs a Schwung checkout: a sibling
-`../schwung`, or `SCHWUNG_ROOT`. The cross build needs `aarch64-linux-gnu-gcc`.
-The core keeps its 0210 file name: it is unchanged in 0.2.11.
 
-## Layout
-- `dsp/` -- the module (`sts_lite.c`, `performance.h`) and the shared
-  playback engine (`sts_playback_engine.{h,c}`).
-- `vst/sts-varispeed/` -- a VST3 one-shot sampler built on the same engine.
-- `third_party/schwung/` -- Schwung's plugin API header (MIT).
+| PAD | 動作 |
+| --- | --- |
+| REC（一番右上） | モーション録音のON/OFF。明るい赤＝ON、暗い赤＝OFF。最初はOFFです |
+| RANDOM（RECの左隣） | 編集中の音に、新しいピッチのフレーズを作ります。ステップのON/OFFは変えません |
+| A/B（2段目の右端） | 編集する音をA・Bで切り替えます。AとBで色が変わります。切り替えても両方鳴り続けます |
+| SAMPLE（2段目の左端） | 押している間はサンプル選択になり、4段目のPAD1〜8でサンプル1〜8、3段目の左2つでサンプル9・10を選びます。選んでいる番号が明るく光ります |
+| ステップ（4段目・3段目） | 押すたびにそのステップの発音をON/OFF。明るい光が再生位置です。OFFのステップでは、その音は鳴りません |
+
+- サンプルの切り替えは、次のステップの頭から反映されます。
+- 8ステップの時は3段目のPADは使いません（SAMPLEを押している間のサンプル9・10を除く）。
+
+## ノブ
+
+| ノブ | 動作 |
+| --- | --- |
+| 1 | 編集中の音の音量（0〜100%） |
+| 2〜7 | 未使用 |
+| 8 | 編集中の音のピッチ。1クリック＝スケールの1音 |
+
+ノブ8は、今のスケールに含まれる音だけを順に選びます。音名と半音数が表示されます（例：`Db -23st`）。速く回しても、回した分だけ確実に進みます。
+
+### 2ページ目（Scale）
+
+ジョグを回すと2ページ目に移ります。戻すと演奏用の画面に戻ります。
+
+| ノブ | 動作 |
+| --- | --- |
+| 1 BASE | ピッチの中心。−48 / −36 / −24 / −12 / 0 半音（最初は−24） |
+| 2 ROOT | スケールの主音（C〜B。最初はC） |
+| 3 SCALE | chromatic / major / minor / dorian / phrygian / lydian / mixolydian / locrian / pentatonic（最初はphrygian） |
+| 4 STEPS | 8 / 16ステップ（最初は8。A・B共通） |
+
+ノブ8で選べる範囲は、BASEを中心に上下30半音（5オクターブ）です。ただし−60〜+60半音を超えることはありません。たとえば最初の設定（BASE −24）なら−54〜+6半音です。−12半音で半分の速さ（1オクターブ下）、+12半音で倍の速さ（1オクターブ上）になります。
+
+スケールは**入力の時だけ**かかります。ROOTやSCALEを後から変えても、記録済みのピッチは書き換わりません。
+
+## モーション録音
+
+ステップごとのピッチを、ノブ8の動きで書き込みます。
+
+1. RECをONにします（明るい赤。画面に `ARM`）。
+2. Moveを再生します。
+3. **ノブ8に触れている間だけ**記録されます（画面に `REC`）。再生位置が通過したステップに、その時のピッチが書き込まれます。触れたまま回せば、回した音程がステップに並びます。
+4. 指を離すと記録が止まります。
+
+- 記録したピッチは、毎ループそのステップで鳴ります。
+- 再生していない時は再生位置がないので記録されません。
+- RECの状態は保存されません。セットを開き直すと必ずOFFから始まります。
+- パターンに動きがある間、ノブ8のつまみは、ノブの位置（入力するピッチ）とは別に、今のステップで鳴っているピッチを動く値として表示します。ノブ8に触れている間は、画面の上にも `ノブの値>鳴っている値st` の形で出ます。
+
+## RANDOM
+
+編集中の音のピッチを、新しいフレーズで置き換えます。MANIACと同じ6種類の元フレーズから1つを選び（直前と同じものは避けます）、半分ほどの音をランダムにずらしてから、今の音域とスケールに収めます。ステップのON/OFFは変えません。
+
+## サンプル
+
+次の場所にWAVを置きます。Schwung Managerのファイル画面からアップロードできます。モジュールを更新しても消えません。
+
+```
+/data/UserData/UserLibrary/Samples/STS Lite/left/01.wav 〜 10.wav    （A用）
+/data/UserData/UserLibrary/Samples/STS Lite/right/01.wav 〜 10.wav   （B用）
+```
+
+- 形式：PCM 16 / 24 / 32bit または32bit浮動小数点、モノラルまたはステレオ（ステレオはモノラルにまとめます）、1〜384kHz。
+- 各ファイルは**先頭5秒まで**読み込み、残りは無視します。1ステップで使うのは、120BPMで一番高いピッチ（+30半音）でも約0.7秒なので、通常の使い方では違いは出ません。
+- 読み込み時に、先頭の無音を切り詰め（最初に音が出る位置から再生）、ピークを揃えます（−0.2dBFS）。ほぼ無音のファイルは持ち上げずにそのままにします。ディスク上のWAVは変更しません。
+- 読み込みはモジュールの起動時です。置いた後はMoveを再起動してください。
+
+## 音のしくみ
+
+- 各ステップの頭で、そのステップのピッチでサンプルを最初から鳴らし直します。サンプルがステップより短ければ、そこで音が途切れます。
+- 4点エルミート補間でバリスピード再生します。サンプルのサンプルレートの違いは自動で補正します。
+- リトリガー、OFFのステップ、サンプルの終わり、停止の切れ目には約1.5msのフェードをかけ、プチッというクリックが出ないようにしています。
+- STS Liteは自分のテンポで動き、MIDIを受けないため、`capabilities.requires_continuous_processing` を宣言して、Schwungの無音時の休止を止めています（Schwung 1.7.3以降）。これがないと、停止中に休止したスロットでは、Playを押してから最初の数ステップが鳴らないことがあります。
+
+## 保存される内容
+
+セットやプリセットに、A・Bそれぞれの16ステップ分のピッチとON/OFF、サンプル番号、音量、BASE / ROOT / SCALE / STEPS、編集中の音（A/B）が保存されます。古い8ステップ版の保存データもそのまま読めます。
+
+## 開発
+
+```
+scripts/test.sh            # ネイティブビルド＋エンジンテスト（ASan/UBSan）＋UIテスト＋ARM64ビルドとABI確認
+scripts/build.sh arm64     # Move用ビルド：dist/sts-lite-module.tar.gz
+scripts/install.py http://<MoveのIP>:7700   # Schwung Manager経由でインストール
+```
+
+UIテストはMoveと同じSchwungのページコントローラで画面を描くので、Schwungのチェックアウトが必要です。既定は隣の `../schwung` で、`SCHWUNG_ROOT` でも指定できます。WSLでは、nodeが無ければWindows側の `node.exe` を使います。
+
+| ファイル | 内容 |
+| --- | --- |
+| `dsp/sts_lite.c` | プラグインAPI v2の窓口、WAVの読み込み（ワーカースレッド）、ステップのクロック追従、再生とフェード |
+| `dsp/performance.h` | 画面用のパラメータ、RANDOM、状態の保存/復元 |
+| `dsp/sts_playback_engine.{h,c}` | 再生エンジン（バリスピードとエルミート補間）。VST3と共通 |
+| `ui_core_v0210.mjs` | 画面とPADの操作（Schwungのページコントローラを使用） |
+| `ui_chain.js` | それをSchwungの画面につなぐ部分 |
+| `vst/sts-varispeed/` | 同じ再生エンジンを使うVST3版（JUCE）。詳しくはそのREADME |
+
+音声処理の経路ではメモリ確保もロックもしません。サンプルの読み込みは、優先度を通常に下げてコア0〜2に移したワーカースレッドだけが行い、モジュールを外すと読み込み途中でもすぐ中断します。`ui_core_v0210.mjs` の番号はQuickJSのキャッシュを避けるためのもので、中身を変えた時だけ上げます。
+
+## ライセンス
+
+MIT（`LICENSE`）。`third_party/schwung/host/plugin_api_v1.h` はSchwungのプラグインAPIのヘッダで、MIT、Copyright (c) Charles Vestal です（`third_party/schwung/LICENSE`）。
