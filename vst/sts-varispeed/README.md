@@ -62,3 +62,10 @@ cmake -S vst/sts-varispeed -B build/sts-core -DSTS_BUILD_PLUGIN=OFF
 cmake --build build/sts-core
 ctest --test-dir build/sts-core --output-on-failure
 ```
+
+## License
+
+The source is MIT (repository `LICENSE`); the playback engine is based on the
+STS firmware (MIT, Dan Green and Hugo Paris). A built VST3 links JUCE, which
+is AGPLv3 or commercially licensed, so distributing the binary must follow
+one of those. See the repository's `THIRD_PARTY_LICENSES.md`.

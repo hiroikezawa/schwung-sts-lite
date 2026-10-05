@@ -1,6 +1,6 @@
 # STS Lite
 
-Ableton Move上の [Schwung](https://github.com/charlesvestal/schwung) 用サウンドジェネレーターです。4ms Company のEurorackモジュール **[STS（Stereo Triggered Sampler）](https://4mscompany.com/sts.php)** をもとに、機能を絞って作ったクローンです。4ms Companyとは関係のない、非公式のものです。
+Ableton Move上の [Schwung](https://github.com/charlesvestal/schwung) 用サウンドジェネレーターです。Eurorackモジュール **[Stereo Triggered Sampler（STS）](https://github.com/4ms/STS)** をもとに、機能を絞って作ったクローンです。再生部はSTSのファームウェア（MIT License、Dan Green・Hugo Paris）をもとにしています。元のSTSの作者・メーカーとは関係のない、非公式のものです。
 
 2つの独立したサンプラー **A** と **B** が、Moveの再生に合わせて16分音符ごとにサンプルを頭から鳴らし直します（リトリガー）。
 
@@ -226,4 +226,8 @@ UIテストはMoveと同じSchwungのページコントローラで画面を描�
 
 ## ライセンス
 
-MIT（`LICENSE`）。`third_party/schwung/host/plugin_api_v1.h` はSchwungのプラグインAPIのヘッダで、MIT、Copyright (c) Charles Vestal です（`third_party/schwung/LICENSE`）。
+STS Lite は MIT License です（`LICENSE`）。もとにした作品のライセンスは `THIRD_PARTY_LICENSES.md` にまとめています。
+
+- **STSのファームウェア**：MIT License、Copyright (c) 2017 Dan Green and Hugo Paris。再生部（4点エルミート補間によるバリスピード再生と、ステレオの左右平均によるモノラル化）は、これをもとにしています。使っているのはソフトウェアだけで、STSのハードウェア設計（CC BY-NC-SA 4.0）とSTSのサンプル音源は含みません。
+- **Schwungのヘッダ**：`third_party/schwung/host/plugin_api_v1.h` はSchwungのプラグインAPIのヘッダで、MIT License、Copyright (c) Charles Vestal です（`third_party/schwung/LICENSE`）。
+- **VST3版**：ビルド時にJUCEを取得します（リポジトリには含みません）。JUCEはAGPLv3と商用ライセンスのデュアルライセンスなので、ビルドしたVST3を配布する場合は、AGPLv3に従うか、JUCEのライセンスが必要です。

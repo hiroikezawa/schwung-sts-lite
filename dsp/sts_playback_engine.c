@@ -1,3 +1,7 @@
+/* Varispeed playback with four-point Hermite interpolation, based on the
+ * Stereo Triggered Sampler (STS) firmware's src/resample.c.
+ * STS firmware: MIT License, Copyright (c) 2017 Dan Green and Hugo Paris.
+ * See THIRD_PARTY_LICENSES.md for the full notice. */
 #include "sts_playback_engine.h"
 
 #include <math.h>

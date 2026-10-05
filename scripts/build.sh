@@ -23,7 +23,7 @@ mkdir -p "$OUT"
 cp "$MODULE/module.json" "$OUT/"
 if [[ "${1:-arm64}" == arm64 ]]; then
   python3 "$MODULE/scripts/check_abi.py" "$OUT/dsp.so"
-  for f in ui_chain.js ui_core_v0210.mjs help.json README.md LICENSE; do
+  for f in ui_chain.js ui_core_v0210.mjs help.json README.md LICENSE THIRD_PARTY_LICENSES.md; do
     cp "$MODULE/$f" "$OUT/"
   done
   # Module-local fallback slots. The persistent samples live in

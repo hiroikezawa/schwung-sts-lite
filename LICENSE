@@ -22,15 +22,7 @@ SOFTWARE.
 
 ---
 
-## Fork Provenance
-
-Schwung (formerly Move Everything) is a ground-up rewrite that began as a fork
-of [Move Anything](https://github.com/bobbydigitales/move-anything) by Bobby
-Digitales. The original SPI communication techniques from that project provided
-the foundation for accessing Move's hardware. Thanks to @talktogreg, @impbox,
-@deets, and especially @bobbyd for those contributions.
-
----
-
-This project includes third-party code under various licenses.
-See THIRD_PARTY_LICENSES.md for details.
+STS Lite is based on the firmware of the Stereo Triggered Sampler (STS) by
+Dan Green and Hugo Paris, used under the MIT License, and includes a header
+from Schwung by Charles Vestal, also under the MIT License. Their copyright
+and permission notices are in THIRD_PARTY_LICENSES.md.
