@@ -28,8 +28,8 @@ static uint32_t phrase_random(sts_lite_t *s) {
 }
 
 static void randomize_pitch(sts_lite_t *s) {
-    /* Same six Phrase Gen source phrases and 50% mutation as MANIAC.
-     * Fold into this sampler's configured range before choosing a degree. */
+    /* Six built-in 8-note source phrases, half the notes moved by a random
+     * interval, folded into the configured range, then snapped to the scale. */
     static const int source[6][8] = {
         {53,65,53,51,94,106,44,51},{60,51,67,94,108,72,70,51},
         {58,61,67,72,75,106,111,43},{58,61,53,70,108,103,43,46},

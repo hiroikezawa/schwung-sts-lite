@@ -1,4 +1,4 @@
-/* Dedicated Chain UI using Schwung's shared DFAM/LXR-style page controller.
+/* Dedicated Chain UI built on Schwung's shared page controller.
  * Keep the imported filename versioned: QuickJS caches relative imports. */
 const NAMES=["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 const MASKS=[0xfff,0xab5,0x5ad,0x6ad,0x5ab,0xad5,0x6b5,0x56b,0x295];
