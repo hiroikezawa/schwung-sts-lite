@@ -5,7 +5,7 @@
   "abbrev": "STL",
   "api_version": 2,
   "description": "Two independent varispeed samplers with touch pitch motion and 8/16-step gates",
-  "author": "Schwung",
+  "author": "Hiro Ikezawa",
   "component_type": "sound_generator",
   "ui_chain": "ui_chain.js",
   "dsp": "dsp.so",
