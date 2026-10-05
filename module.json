@@ -1,7 +1,7 @@
 {
   "id": "sts-lite",
   "name": "STS Lite",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "abbrev": "STL",
   "api_version": 2,
   "description": "Two independent varispeed samplers with touch pitch motion and 8/16-step gates",
