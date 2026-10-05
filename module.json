@@ -1,0 +1,92 @@
+{
+  "id": "sts-lite",
+  "name": "STS Lite",
+  "version": "0.2.11",
+  "abbrev": "STL",
+  "api_version": 2,
+  "description": "Two independent varispeed samplers with touch pitch motion and 8/16-step gates",
+  "author": "Schwung",
+  "component_type": "sound_generator",
+  "ui_chain": "ui_chain.js",
+  "dsp": "dsp.so",
+  "capabilities": {
+    "audio_out": true,
+    "chainable": true,
+    "requires_continuous_processing": true,
+    "chain_params": [
+      {
+        "key": "volume",
+        "name": "Volume",
+        "type": "int",
+        "min": 0,
+        "max": 100,
+        "default": 100
+      },
+      {
+        "key": "base_pitch",
+        "name": "Base",
+        "type": "int",
+        "min": -48,
+        "max": 0,
+        "step": 12,
+        "default": -24
+      },
+      {
+        "key": "pitch",
+        "name": "Pitch",
+        "type": "int",
+        "min": 0,
+        "max": 34,
+        "step": 1,
+        "default": 17
+      },
+      {
+        "key": "root",
+        "name": "Root",
+        "type": "enum",
+        "options": [
+          "C",
+          "Db",
+          "D",
+          "Eb",
+          "E",
+          "F",
+          "Gb",
+          "G",
+          "Ab",
+          "A",
+          "Bb",
+          "B"
+        ],
+        "default": 0
+      },
+      {
+        "key": "scale",
+        "name": "Scale",
+        "type": "enum",
+        "options": [
+          "chromatic",
+          "major",
+          "minor",
+          "dorian",
+          "phrygian",
+          "lydian",
+          "mixolydian",
+          "locrian",
+          "pentatonic"
+        ],
+        "default": 4
+      },
+      {
+        "key": "length",
+        "name": "Steps",
+        "type": "enum",
+        "options": [
+          "8",
+          "16"
+        ],
+        "default": 0
+      }
+    ]
+  }
+}

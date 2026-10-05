@@ -1,0 +1,76 @@
+{
+  "title": "STS Lite",
+  "children": [
+    {
+      "title": "Overview",
+      "lines": [
+        "Two varispeed",
+        "samplers: A plays",
+        "left, B plays right.",
+        "",
+        "Each 1/16 step",
+        "retriggers both from",
+        "the start at that",
+        "step's pitch. Plays",
+        "while Move plays."
+      ]
+    },
+    {
+      "title": "Pads",
+      "lines": [
+        "Top right: record",
+        " red=on, dim=off",
+        "Left of it: random",
+        " pitch phrase",
+        "Row 2 right: edit",
+        " sound A or B",
+        "Hold row 2 left,",
+        " tap bottom pads:",
+        " sample 1-10",
+        "Bottom rows: step",
+        " triggers on/off"
+      ]
+    },
+    {
+      "title": "Knobs",
+      "lines": [
+        "K1: volume of the",
+        " selected sound",
+        "K8: pitch, one",
+        " scale step/detent",
+        "K2-K7: unused",
+        "",
+        "Jog page 2: base",
+        " pitch, root,",
+        " scale, 8/16 steps",
+        "Range: 5 octaves"
+      ]
+    },
+    {
+      "title": "Motion",
+      "lines": [
+        "Arm record, play,",
+        "then hold K8: its",
+        "pitch is written",
+        "into each step it",
+        "crosses. Release to",
+        "stop. A and B keep",
+        "their own patterns."
+      ]
+    },
+    {
+      "title": "Samples",
+      "lines": [
+        "UserLibrary/Samples",
+        " /STS Lite/left",
+        " and /right,",
+        " 01.wav to 10.wav",
+        "",
+        "WAV 16/24/32-bit or",
+        "float. First 5 s",
+        "only. Loaded when",
+        "the module starts."
+      ]
+    }
+  ]
+}
