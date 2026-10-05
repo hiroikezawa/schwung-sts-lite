@@ -78,6 +78,8 @@ scripts/test.sh                       # engine (ASan/UBSan), UI, Move ABI check
 scripts/build.sh arm64                # dist/sts-lite-module.tar.gz
 scripts/install.py http://move.local:7700   # upload via Schwung Manager
 ```
+A release tarball (GitHub Releases) installs the same way:
+`scripts/install.py http://move.local:7700 --package sts-lite-module.tar.gz`.
 Restart Move after installing. The UI test runs the real Schwung page
 controller and framebuffer, so it needs a Schwung checkout: a sibling
 `../schwung`, or `SCHWUNG_ROOT`. The cross build needs `aarch64-linux-gnu-gcc`.

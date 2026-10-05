@@ -56,8 +56,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("url", nargs="?", default="http://move.local:7700")
     parser.add_argument("--check", action="store_true", help="Check connection only; upload nothing")
+    parser.add_argument("--package", type=pathlib.Path,
+                        default=pathlib.Path(__file__).resolve().parent.parent / "dist" / "sts-lite-module.tar.gz",
+                        help="Tarball to upload (default: dist/, e.g. one downloaded from Releases)")
     args = parser.parse_args()
     try:
-        install(args.url, pathlib.Path(__file__).resolve().parent.parent / "dist/sts-lite-module.tar.gz", args.check)
+        install(args.url, args.package, args.check)
     except Exception as exc:
         parser.exit(1, str(exc) + "\n")
