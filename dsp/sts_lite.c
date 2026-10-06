@@ -33,6 +33,12 @@
 /* ~1.5 ms: a retrigger, a gate cut, a sample end or a transport stop ramps
  * instead of jumping, so no 1/16 boundary is a click. */
 #define STS_DECLICK_FRAMES 64
+/* A sits left of centre and B right, each STS_PAN of the way to the edge.
+ * Constant-amplitude law: a voice's two gains sum to 1, so A and B -- which
+ * retrigger on the same frame -- can never sum past full scale. */
+#define STS_PAN 0.30f
+#define STS_PAN_NEAR ((1.0f + STS_PAN) * 0.5f)
+#define STS_PAN_FAR ((1.0f - STS_PAN) * 0.5f)
 
 typedef struct {
     float *data;
@@ -493,8 +499,9 @@ static float voice_next(sts_playback_engine_t *v, const sts_sample_t *sample) {
     return value;
 }
 
-/* Caller holds render_readers. */
-static int16_t render_channel(sts_lite_t *s, int ch) {
+/* One voice's next frame, after its volume, in -1..1. Caller holds
+ * render_readers. */
+static float render_channel(sts_lite_t *s, int ch) {
     sts_channel_t *c = &s->channel[ch];
     float value = 0.0f;
     if (c->active) {
@@ -509,11 +516,19 @@ static int16_t render_channel(sts_lite_t *s, int ch) {
             c->fade.active = 0;
         }
     }
-    if (!c->active && !c->fade_left && value == 0.0f) return 0;
+    if (!c->active && !c->fade_left && value == 0.0f) return 0.0f;
     if (value > 1.0f) value = 1.0f;
     if (value < -1.0f) value = -1.0f;
-    value *= (float)c->volume / 100.0f;
-    return (int16_t)lrintf(value * 32767.0f);
+    return value * (float)c->volume / 100.0f;
+}
+
+/* Both voices, panned, into one stereo frame. Caller holds render_readers. */
+static void render_frame(sts_lite_t *s, int16_t *lr) {
+    float a = render_channel(s, 0), b = render_channel(s, 1);
+    float l = a * STS_PAN_NEAR + b * STS_PAN_FAR;
+    float r = a * STS_PAN_FAR + b * STS_PAN_NEAR;
+    lr[0] = (int16_t)lrintf(l * 32767.0f);
+    lr[1] = (int16_t)lrintf(r * 32767.0f);
 }
 
 static void init_defaults(sts_lite_t *s) {
@@ -804,8 +819,7 @@ static void render_frames(sts_lite_t *s, int16_t *out, int frames) {
             return;
         }
         for (int i = 0; i < frames; ++i) {
-            out[i * 2] = render_channel(s, 0);
-            out[i * 2 + 1] = render_channel(s, 1);
+            render_frame(s, out + i * 2);
         }
         return;
     }
@@ -829,8 +843,7 @@ static void render_frames(sts_lite_t *s, int16_t *out, int frames) {
             else c->touched = 0;
             if (s->pitch_mode && c->touched) c->sequence[c->current_step] = c->input_pitch;
         }
-        out[i * 2] = render_channel(s, 0);
-        out[i * 2 + 1] = render_channel(s, 1);
+        render_frame(s, out + i * 2);
         beat += beat_per_frame;
     }
     if (!host_clock) s->free_beat = beat;

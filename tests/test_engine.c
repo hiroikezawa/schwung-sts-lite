@@ -225,14 +225,52 @@ int main(void) {
     assert(out[0] == 0 && out[1] == 0);
     s.host = NULL;
 
-    /* Phase 6: voices have independent positions and output channels. */
+    /* Phase 6: voices have independent positions; A sits 30 % left of
+     * centre and B 30 % right (constant-amplitude law: 0.65 / 0.35). */
     trigger_step(&s, 4);
-    out[0] = out[1] = 0;
+    int saved_volume0 = s.channel[0].volume, saved_volume1 = s.channel[1].volume;
+    s.channel[1].volume = 0;                          /* A alone: positive data */
     render_block(&s, out, 1);
-    assert(out[0] > 0);
-    assert(out[1] < 0);
+    assert(out[0] > out[1] && out[1] > 0);
+    assert(fabs((double)out[1] / out[0] - STS_PAN_FAR / STS_PAN_NEAR) < 0.01);
+    s.channel[0].volume = 0;                          /* B alone: negative data */
+    s.channel[1].volume = 100;
+    render_block(&s, out, 1);
+    assert(out[1] < out[0] && out[0] < 0);
+    assert(fabs((double)out[0] / out[1] - STS_PAN_FAR / STS_PAN_NEAR) < 0.01);
+    s.channel[0].volume = saved_volume0;
+    s.channel[1].volume = saved_volume1;
     assert(s.channel[0].playback.position > 0.0);
     assert(s.channel[1].playback.position > 0.0);
+
+    /* A and B retrigger together: full-scale on both still fits. */
+    {
+        float full_data[256];
+        for (int i = 0; i < 256; ++i) full_data[i] = 1.0f;
+        sts_sample_t full = {full_data, 256, 44100};
+        sts_sample_t *keep0 = atomic_load(&s.slots[0][3].sample), *keep1 = atomic_load(&s.slots[1][3].sample);
+        attach(&s, 0, 3, &full);
+        attach(&s, 1, 3, &full);
+        int p0 = s.channel[0].pending_sample, p1 = s.channel[1].pending_sample;
+        s.channel[0].pending_sample = s.channel[1].pending_sample = 3;
+        s.channel[0].volume = s.channel[1].volume = 100;
+        trigger_step(&s, 4);
+        int16_t peak = 0;
+        for (int i = 0; i < 64; ++i) {
+            render_frame(&s, out);
+            if (out[0] > peak) peak = out[0];
+            if (out[1] > peak) peak = out[1];
+        }
+        assert(peak >= 32760);                        /* A + B at the near/far sum: 1.0 */
+        s.channel[0].pending_sample = p0;
+        s.channel[1].pending_sample = p1;
+        s.channel[0].volume = saved_volume0;
+        s.channel[1].volume = saved_volume1;
+        trigger_step(&s, 4);
+        for (int i = 0; i < 2 * STS_DECLICK_FRAMES; ++i) render_frame(&s, out);
+        attach(&s, 0, 3, keep0);
+        attach(&s, 1, 3, keep1);
+    }
 
     /* Legacy volume parameters remain loadable, despite no longer having knobs. */
     set_param(&s, "left_volume", "50");
@@ -260,10 +298,10 @@ int main(void) {
     for (int i = 0; i < 40; ++i) render_channel(&s, 0);
     trigger_step(&s, 2);
     assert(!s.channel[0].active && s.channel[0].fade_left == STS_DECLICK_FRAMES);
-    int16_t first = render_channel(&s, 0);
-    assert(first > 0);
+    float first = render_channel(&s, 0);
+    assert(first > 0.0f);
     for (int i = 0; i < STS_DECLICK_FRAMES; ++i) render_channel(&s, 0);
-    assert(render_channel(&s, 0) == 0);
+    assert(render_channel(&s, 0) == 0.0f);
     s.channel[0].gates[2] = 1;
     /* A sample end ramps to zero: the last frames are scaled down. */
     sts_playback_engine_t tail = {.position = 511.0, .rate = 1.0, .active = 1};
