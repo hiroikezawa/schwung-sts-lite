@@ -70,15 +70,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
-
-## STS Varispeed VST3 (`vst/sts-varispeed/`) only
-
-Neither of the following is included in this repository or in the Move module.
-CMake downloads JUCE when the VST3 is built (or uses `JUCE_DIR`).
-
-- **JUCE** is dual-licensed under the AGPLv3 and the commercial JUCE licence.
-  A VST3 binary built here links JUCE, so distributing that binary must follow
-  the AGPLv3 (this project's MIT source is compatible with it) or a JUCE
-  licence held by whoever distributes it.
-- **VST 3 SDK** (Steinberg), brought in by JUCE, is under the license of the
-  version JUCE ships. "VST" is a trademark of Steinberg Media Technologies GmbH.

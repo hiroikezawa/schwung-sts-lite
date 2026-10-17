@@ -217,10 +217,9 @@ UIテストはMoveと同じSchwungのページコントローラで画面を描�
 | --- | --- |
 | `dsp/sts_lite.c` | プラグインAPI v2の窓口、WAVの読み込み（ワーカースレッド）、ステップのクロック追従、再生とフェード |
 | `dsp/performance.h` | 画面用のパラメータ、RANDOM、状態の保存/復元 |
-| `dsp/sts_playback_engine.{h,c}` | 再生エンジン（バリスピードとエルミート補間）。VST3と共通 |
+| `dsp/sts_playback_engine.{h,c}` | 再生エンジン（バリスピードとエルミート補間） |
 | `ui_core_v0210.mjs` | 画面とPADの操作（Schwungのページコントローラを使用） |
 | `ui_chain.js` | それをSchwungの画面につなぐ部分 |
-| `vst/sts-varispeed/` | 同じ再生エンジンを使うVST3版（JUCE）。詳しくはそのREADME |
 
 音声処理の経路ではメモリ確保もロックもしません。サンプルの読み込みは、優先度を通常に下げてコア0〜2に移したワーカースレッドだけが行い、モジュールを外すと読み込み途中でもすぐ中断します。`ui_core_v0210.mjs` の番号はQuickJSのキャッシュを避けるためのもので、中身を変えた時だけ上げます。
 
@@ -230,4 +229,3 @@ STS Lite は MIT License です（`LICENSE`）。もとにした作品のライ�
 
 - **STSのファームウェア**：MIT License、Copyright (c) 2017 Dan Green and Hugo Paris。再生部（4点エルミート補間によるバリスピード再生と、ステレオの左右平均によるモノラル化）は、これをもとにしています。使っているのはソフトウェアだけで、STSのハードウェア設計（CC BY-NC-SA 4.0）とSTSのサンプル音源は含みません。
 - **Schwungのヘッダ**：`third_party/schwung/host/plugin_api_v1.h` はSchwungのプラグインAPIのヘッダで、MIT License、Copyright (c) Charles Vestal です（`third_party/schwung/LICENSE`）。
-- **VST3版**：ビルド時にJUCEを取得します（リポジトリには含みません）。JUCEはAGPLv3と商用ライセンスのデュアルライセンスなので、ビルドしたVST3を配布する場合は、AGPLv3に従うか、JUCEのライセンスが必要です。
