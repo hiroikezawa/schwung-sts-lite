@@ -50,17 +50,27 @@ static void randomize_pitch(sts_lite_t *s) {
     }
 }
 
+/* vol_a .. vol_d: every voice's volume, whichever voice is being edited. */
+static int volume_key(const char *key) {
+    if (strncmp(key, "vol_", 4) || key[4] < 'a' || key[4] >= 'a' + STS_CHANNELS || key[5])
+        return -1;
+    return key[4] - 'a';
+}
+
 static int performance_set(sts_lite_t *s, const char *key, const char *value, int v) {
     sts_channel_t *c = &s->channel[s->edit_channel];
-    if (!strcmp(key, "edit_channel")) {
-        s->channel[0].touched = s->channel[1].touched = 0;
-        s->edit_channel = clampi(v, 0, 1);
+    int vol = volume_key(key);
+    if (vol >= 0) {
+        s->channel[vol].volume = clampi(v, 0, 100);
+    } else if (!strcmp(key, "edit_channel")) {
+        for (int ch = 0; ch < STS_CHANNELS; ++ch) s->channel[ch].touched = 0;
+        s->edit_channel = clampi(v, 0, STS_CHANNELS - 1);
     } else if (!strcmp(key, "write")) {
         s->pitch_mode = !!v;
     } else if (!strcmp(key, "length")) {
         s->steps = (v == 16 || v == 1) ? 16 : 8;
         s->clock_step = -1;
-        for (int ch = 0; ch < 2; ++ch) s->channel[ch].current_step %= s->steps;
+        for (int ch = 0; ch < STS_CHANNELS; ++ch) s->channel[ch].current_step %= s->steps;
     } else if (!strcmp(key, "root")) {
         s->root_note = floor_mod(v, 12); requantize(s);
     } else if (!strcmp(key, "touch")) {
@@ -85,6 +95,8 @@ static int performance_set(sts_lite_t *s, const char *key, const char *value, in
 
 static int performance_get(sts_lite_t *s, const char *key, char *buf, int len) {
     sts_channel_t *c = &s->channel[s->edit_channel];
+    int vol = volume_key(key);
+    if (vol >= 0) return snprintf(buf,len,"%d",s->channel[vol].volume);
     if (!strcmp(key, "edit_channel")) return snprintf(buf,len,"%d",s->edit_channel);
     if (!strcmp(key, "write")) return snprintf(buf,len,"%d",s->pitch_mode);
     if (!strcmp(key, "length")) return snprintf(buf,len,"%d",s->steps == 16);
@@ -118,16 +130,22 @@ static int performance_get(sts_lite_t *s, const char *key, char *buf, int len) {
     }
     if (!strcmp(key, "grid_hierarchy"))
         return snprintf(buf,len,
-            "{\"modes\":null,\"levels\":{\"root\":{\"label\":\"STS Lite\","
-            "\"knobs\":[\"volume\",\"pitch\"],"
-            "\"params\":[\"volume\",\"pitch\","
+            "{\"modes\":null,\"levels\":{\"root\":{\"label\":\"Main\","
+            "\"knobs\":[\"vol_a\",\"vol_b\",\"vol_c\",\"vol_d\",\"pitch\"],"
+            "\"params\":[\"vol_a\",\"vol_b\",\"vol_c\",\"vol_d\",\"pitch\","
             "{\"level\":\"scale\",\"label\":\"Scale\"}]},"
-            "\"scale\":{\"label\":\"Scale\",\"knobs\":[\"base_pitch\",\"root\",\"scale\",\"length\"],"
-            "\"params\":[\"base_pitch\",\"root\",\"scale\",\"length\"]}}}");
+            "\"scale\":{\"label\":\"Scale\",\"knobs\":[\"vol_a\",\"vol_b\",\"vol_c\",\"vol_d\","
+            "\"base_pitch\",\"root\",\"scale\",\"length\"],"
+            "\"params\":[\"vol_a\",\"vol_b\",\"vol_c\",\"vol_d\","
+            "\"base_pitch\",\"root\",\"scale\",\"length\"]}}}");
     if (!strcmp(key, "chain_params")) {
         int notes[121], count = pitch_notes(s,notes);
         return snprintf(buf,len,
             "[{\"key\":\"volume\",\"name\":\"Volume\",\"type\":\"int\",\"min\":0,\"max\":100},"
+            "{\"key\":\"vol_a\",\"name\":\"Vol A\",\"type\":\"int\",\"min\":0,\"max\":100},"
+            "{\"key\":\"vol_b\",\"name\":\"Vol B\",\"type\":\"int\",\"min\":0,\"max\":100},"
+            "{\"key\":\"vol_c\",\"name\":\"Vol C\",\"type\":\"int\",\"min\":0,\"max\":100},"
+            "{\"key\":\"vol_d\",\"name\":\"Vol D\",\"type\":\"int\",\"min\":0,\"max\":100},"
             "{\"key\":\"base_pitch\",\"name\":\"Base\",\"type\":\"int\",\"min\":-48,\"max\":0,\"step\":12},"
             "{\"key\":\"pitch\",\"name\":\"Pitch\",\"type\":\"int\",\"min\":0,\"max\":%d,\"step\":1},"
             "{\"key\":\"root\",\"name\":\"Root\",\"type\":\"enum\",\"options\":[\"C\",\"Db\",\"D\",\"Eb\",\"E\",\"F\",\"Gb\",\"G\",\"Ab\",\"A\",\"Bb\",\"B\"]},"
@@ -137,14 +155,18 @@ static int performance_get(sts_lite_t *s, const char *key, char *buf, int len) {
     if (!strcmp(key, "state")) {
         char state[2048];
         int n=snprintf(state,sizeof(state),
-            "{\"version\":3,\"base\":%d,\"range\":%d,\"root\":%d,\"scale\":%d,"
-            "\"ls\":%d,\"rs\":%d,\"lv\":%d,\"rv\":%d,\"steps\":%d,\"edit\":%d",
+            "{\"version\":4,\"base\":%d,\"range\":%d,\"root\":%d,\"scale\":%d,"
+            "\"ls\":%d,\"rs\":%d,\"cs\":%d,\"ds\":%d,"
+            "\"lv\":%d,\"rv\":%d,\"cv\":%d,\"dv\":%d,\"steps\":%d,\"edit\":%d",
             s->base_pitch,s->pitch_range,s->root_note,s->scale,
             s->channel[0].pending_sample,s->channel[1].pending_sample,
-            s->channel[0].volume,s->channel[1].volume,s->steps,s->edit_channel);
-        for(int ch=0;ch<2;++ch) for(int i=0;i<16;++i)
+            s->channel[2].pending_sample,s->channel[3].pending_sample,
+            s->channel[0].volume,s->channel[1].volume,
+            s->channel[2].volume,s->channel[3].volume,s->steps,s->edit_channel);
+        for(int ch=0;ch<STS_CHANNELS;++ch) for(int i=0;i<16;++i)
             n+=snprintf(state+n,sizeof(state)-(size_t)n,",\"%c%d\":%d,\"%cg%d\":%d",
-                ch?'r':'l',i,s->channel[ch].sequence[i],ch?'r':'l',i,s->channel[ch].gates[i]);
+                STS_STATE_LETTERS[ch],i,s->channel[ch].sequence[i],
+                STS_STATE_LETTERS[ch],i,s->channel[ch].gates[i]);
         snprintf(state+n,sizeof(state)-(size_t)n,"}");
         if ((int)strlen(state)>=len) return -1;
         return snprintf(buf,len,"%s",state);

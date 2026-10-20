@@ -2,6 +2,10 @@
  * Keep the imported filename versioned: QuickJS caches relative imports. */
 const NAMES=["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
 const MASKS=[0xfff,0xab5,0x5ad,0x6ad,0x5ab,0xad5,0x6b5,0x56b,0x295];
+const VOICES="ABCD";
+/* Row 2 from the top, right half: one pad per voice, A..D. */
+const VOICE_PAD=88;
+
 export function noteTable(base,range,root,scale) {
     const out=[];
     for(let n=Math.max(-60,base-range/2);n<=Math.min(60,base+range/2);++n)
@@ -64,13 +68,14 @@ export function createUi(d) {
     }
     /* The shared planner compacts null authored knobs. Temporarily pad only
      * input and draw calls, never the controller's stored page: its contract
-     * resettler assumes every permanent page key is a non-null parameter. */
+     * resettler assumes every permanent page key is a non-null parameter.
+     * Main is K1-K4 = volumes A-D, K5-K7 empty, K8 = pitch. */
     function withMainKnobs(run){
         const page=st.controller?.page;
-        if(page?.kind==="knobs"&&page.level==="root"&&page.keys?.length===2
-            &&bare(page.keys[0])==="volume"&&bare(page.keys[1])==="pitch"){
+        if(page?.kind==="knobs"&&page.level==="root"&&page.keys?.length===5
+            &&bare(page.keys[0])==="vol_a"&&bare(page.keys[4])==="pitch"){
             const keys=page.keys;
-            page.keys=[keys[0],null,null,null,null,null,null,keys[1]];
+            page.keys=[...keys.slice(0,4),null,null,null,keys[4]];
             try{return run();}
             finally{page.keys=keys;}
         }
@@ -111,7 +116,7 @@ export function createUi(d) {
             if(n===84)color=st.samplePick?14:91;
             if(n===99)color=st.write?127:65;
             if(n===98)color=st.held.has(n)?120:21;
-            if(n===91)color=st.channel?45:11;
+            if(n>=VOICE_PAD&&n<VOICE_PAD+4)color=n-VOICE_PAD===st.channel?120:1;
             d.sendLed(n,color);
         }
     }
@@ -128,9 +133,14 @@ export function createUi(d) {
             c.reloadIfChanged({slot:0,component:"synth",prefix:"synth"});
         }
         c.setLayout(d.layout());c.tick();d.clear();
+        const voice=VOICES[st.channel]||"A";
+        /* Which jog page this is, "1/2", ahead of everything else in the
+         * header; the page's own name stays on the right. */
+        const pages=c.state?.pages?.length||1;
+        const tag=(Math.min(pages,(c.pageIndex|0)+1))+"/"+pages;
         const label=st.samplePick
-            ?"SAMPLE "+(st.channel?"B":"A")+" "+String(st.sample+1).padStart(2,"0")+"/10"
-            :(st.channel?"B":"A")+String(st.sample+1).padStart(2,"0")+
+            ?"SAMPLE "+voice+" "+String(st.sample+1).padStart(2,"0")+"/10"
+            :tag+" "+voice+String(st.sample+1).padStart(2,"0")+
                 " P"+(Number.isFinite(st.playing)?st.playing:st.pitch)+
                 (st.step>=0?" "+(st.step+1)+"/"+st.len:" STOP")+
                 (st.write?(st.pitchHeld?" REC":" ARM"):"");
@@ -155,7 +165,7 @@ export function createUi(d) {
             else if(st.samplePick&&a>=68&&a<=77)set("sample",a-68);
             else if(a===99)set("write",st.write?0:1);
             else if(a===98){releaseTouch();set("randomize",1);}
-            else if(a===91)set("edit_channel",st.channel?0:1);
+            else if(a>=VOICE_PAD&&a<VOICE_PAD+4)set("edit_channel",a-VOICE_PAD);
             else if(!st.samplePick&&a<=83&&a-68<st.len)set("gate_toggle",a-68);
             paint();return;
         }

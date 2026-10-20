@@ -4,16 +4,20 @@
     {
       "title": "Overview",
       "lines": [
-        "Two varispeed",
-        "samplers: A panned",
-        "30% left, B 30%",
-        "right.",
+        "Four varispeed",
+        "samplers: A 30% L,",
+        "B 30% R, C 50% L,",
+        "D 50% R.",
         "",
         "Each 1/16 step",
-        "retriggers both from",
+        "retriggers all from",
         "the start at that",
         "step's pitch. Plays",
-        "while Move plays."
+        "while Move plays.",
+        "",
+        "Header: 1/2 = page",
+        "1 of 2 (Main),",
+        "2/2 = Scale."
       ]
     },
     {
@@ -23,8 +27,8 @@
         " red=on, dim=off",
         "Left of it: random",
         " pitch phrase",
-        "Row 2 right: edit",
-        " sound A or B",
+        "Row 2 right four:",
+        " edit sound A-D",
         "Hold row 2 left,",
         " tap bottom pads:",
         " sample 1-10",
@@ -35,15 +39,17 @@
     {
       "title": "Knobs",
       "lines": [
-        "K1: volume of the",
-        " selected sound",
+        "K1-K4: volume of",
+        "  A, B, C, D",
+        "  (every page)",
         "K8: pitch, one",
         " scale step/detent",
-        "K2-K7: unused",
+        "K5-K7: unused",
         "",
-        "Jog page 2: base",
-        " pitch, root,",
-        " scale, 8/16 steps",
+        "Jog page 2: K5 base",
+        " pitch, K6 root,",
+        " K7 scale, K8 8/16",
+        " steps",
         "Range: 5 octaves"
       ]
     },
@@ -55,16 +61,18 @@
         "pitch is written",
         "into each step it",
         "crosses. Release to",
-        "stop. A and B keep",
-        "their own patterns."
+        "stop. Each sound",
+        "keeps its own",
+        "pattern."
       ]
     },
     {
       "title": "Samples",
       "lines": [
         "UserLibrary/Samples",
-        " /STS Lite/left",
-        " and /right,",
+        " /STS Lite/left (A)",
+        " /right (B)",
+        " /ch3 (C) /ch4 (D)",
         " 01.wav to 10.wav",
         "",
         "WAV 16/24/32-bit or",

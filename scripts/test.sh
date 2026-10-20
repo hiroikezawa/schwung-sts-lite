@@ -9,7 +9,7 @@ OUT="$MODULE/build/native"
   -I"$MODULE/third_party/schwung" -I"$MODULE/dsp" \
   "$MODULE/tests/test_engine.c" "$MODULE/dsp/sts_playback_engine.c" \
   -o "$OUT/test-engine" -lm -pthread
-"$OUT/test-engine"
+(cd "$MODULE" && "$OUT/test-engine")
 # The UI test drives the real Schwung page controller: SCHWUNG_ROOT, or a
 # sibling ../schwung checkout.
 SCHWUNG="${SCHWUNG_ROOT:-$MODULE/../schwung}"

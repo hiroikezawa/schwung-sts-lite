@@ -1,6 +1,6 @@
 /* Version the imported path: QuickJS caches relative imports even though
  * shadow_load_ui_module gives this entrypoint a fresh name on every open. */
-import {createUi} from "./ui_core_v0210.mjs";
+import {createUi} from "./ui_core_v0300.mjs";
 import {createController,LAYOUT_MOVY,LAYOUT_LIST} from "/data/UserData/schwung/shared/param_pages/page_controller.mjs";
 import {decodeInput,applyInput} from "/data/UserData/schwung/shared/param_pages/page_input.mjs";
 const has=n=>typeof globalThis[n]==="function";

@@ -226,18 +226,20 @@ int main(void) {
     s.host = NULL;
 
     /* Phase 6: voices have independent positions; A sits 30 % left of
-     * centre and B 30 % right (constant-amplitude law: 0.65 / 0.35). */
+     * centre and B 30 % right (constant-amplitude law: 0.65 / 0.35). C and D
+     * have no sample attached here, so they are silent. */
+    const double near30 = 0.65, far30 = 0.35;
     trigger_step(&s, 4);
     int saved_volume0 = s.channel[0].volume, saved_volume1 = s.channel[1].volume;
     s.channel[1].volume = 0;                          /* A alone: positive data */
     render_block(&s, out, 1);
     assert(out[0] > out[1] && out[1] > 0);
-    assert(fabs((double)out[1] / out[0] - STS_PAN_FAR / STS_PAN_NEAR) < 0.01);
+    assert(fabs((double)out[1] / out[0] - far30 / near30) < 0.01);
     s.channel[0].volume = 0;                          /* B alone: negative data */
     s.channel[1].volume = 100;
     render_block(&s, out, 1);
     assert(out[1] < out[0] && out[0] < 0);
-    assert(fabs((double)out[0] / out[1] - STS_PAN_FAR / STS_PAN_NEAR) < 0.01);
+    assert(fabs((double)out[0] / out[1] - far30 / near30) < 0.01);
     s.channel[0].volume = saved_volume0;
     s.channel[1].volume = saved_volume1;
     assert(s.channel[0].playback.position > 0.0);
@@ -270,6 +272,66 @@ int main(void) {
         for (int i = 0; i < 2 * STS_DECLICK_FRAMES; ++i) render_frame(&s, out);
         attach(&s, 0, 3, keep0);
         attach(&s, 1, 3, keep1);
+    }
+
+    /* C sits 50 % left and D 50 % right (0.75 / 0.25); all four at full
+     * scale on one frame clamp instead of wrapping int16. */
+    {
+        float full_data[256];
+        for (int i = 0; i < 256; ++i) full_data[i] = 1.0f;
+        sts_sample_t full = {full_data, 256, 44100};
+        sts_sample_t *keep[STS_CHANNELS];
+        int pend[STS_CHANNELS], vol[STS_CHANNELS];
+        for (int ch = 0; ch < STS_CHANNELS; ++ch) {
+            keep[ch] = atomic_load(&s.slots[ch][3].sample);
+            pend[ch] = s.channel[ch].pending_sample;
+            vol[ch] = s.channel[ch].volume;
+            attach(&s, ch, 3, &full);
+            s.channel[ch].pending_sample = 3;
+            s.channel[ch].volume = 0;
+        }
+        s.channel[2].volume = 100;                    /* C alone */
+        trigger_step(&s, 4);
+        render_frame(&s, out);
+        assert(out[0] > out[1] && out[1] > 0);
+        assert(fabs((double)out[1] / out[0] - 0.25 / 0.75) < 0.01);
+        s.channel[2].volume = 0;
+        s.channel[3].volume = 100;                    /* D alone */
+        trigger_step(&s, 4);
+        for (int i = 0; i < STS_DECLICK_FRAMES; ++i) render_frame(&s, out);
+        render_frame(&s, out);
+        assert(out[1] > out[0] && out[0] > 0);
+        assert(fabs((double)out[0] / out[1] - 0.25 / 0.75) < 0.01);
+        for (int ch = 0; ch < STS_CHANNELS; ++ch) s.channel[ch].volume = 100;
+        trigger_step(&s, 4);
+        for (int i = 0; i < STS_DECLICK_FRAMES + 8; ++i) {
+            render_frame(&s, out);
+            assert(out[0] > 0 && out[1] > 0);         /* clamped, never wrapped */
+        }
+        assert(out[0] == 32767 && out[1] == 32767);
+        for (int ch = 0; ch < STS_CHANNELS; ++ch) {
+            s.channel[ch].pending_sample = pend[ch];
+            s.channel[ch].volume = vol[ch];
+        }
+        trigger_step(&s, 4);
+        for (int i = 0; i < 2 * STS_DECLICK_FRAMES; ++i) render_frame(&s, out);
+        for (int ch = 0; ch < STS_CHANNELS; ++ch) attach(&s, ch, 3, keep[ch]);
+    }
+
+    /* vol_a..vol_d set every voice's volume whatever voice is edited. */
+    {
+        char v[16];
+        set_param(&s, "edit_channel", "3");
+        assert(s.edit_channel == 3);
+        set_param(&s, "edit_channel", "9");
+        assert(s.edit_channel == 3);
+        set_param(&s, "vol_a", "11");
+        set_param(&s, "vol_c", "33");
+        set_param(&s, "vol_d", "140");
+        assert(s.channel[0].volume == 11 && s.channel[2].volume == 33 && s.channel[3].volume == 100);
+        assert(get_param(&s, "vol_c", v, sizeof(v)) > 0 && !strcmp(v, "33"));
+        assert(get_param(&s, "vol_e", v, sizeof(v)) == -1);
+        set_param(&s, "edit_channel", "0");
     }
 
     /* Legacy volume parameters remain loadable, despite no longer having knobs. */
@@ -357,6 +419,46 @@ int main(void) {
     assert(restored.steps == 16);
     assert(restored.channel[0].gates[15] == 0);
     assert(restored.channel[1].sequence[15] == s.channel[1].sequence[15]);
+    {
+        /* C and D are saved too, and a state from before them leaves them at
+         * their defaults. */
+        sts_lite_t four, back;
+        memset(&four, 0, sizeof(four));
+        four.output_rate = 44100;
+        init_defaults(&four);
+        four.channel[2].sequence[5] = -36;
+        four.channel[3].sequence[15] = -12;
+        four.channel[2].gates[1] = 0;
+        four.channel[3].gates[14] = 0;
+        four.channel[2].volume = 40;
+        four.channel[3].volume = 60;
+        four.channel[2].pending_sample = 7;
+        four.channel[3].pending_sample = 9;
+        four.edit_channel = 3;
+        char big[2048];
+        int n = get_param(&four, "state", big, sizeof(big));
+        assert(n > 0 && n < (int)sizeof(big));
+        memset(&back, 0, sizeof(back));
+        back.output_rate = 44100;
+        init_defaults(&back);
+        set_param(&back, "state", big);
+        assert(back.channel[2].sequence[5] == -36 && back.channel[3].sequence[15] == -12);
+        assert(back.channel[2].gates[1] == 0 && back.channel[3].gates[14] == 0);
+        assert(back.channel[2].volume == 40 && back.channel[3].volume == 60);
+        assert(back.channel[2].pending_sample == 7 && back.channel[3].pending_sample == 9);
+        assert(back.edit_channel == 3);
+        assert(back.channel[0].sequence[0] == -24 && back.channel[0].gates[1] == 1);
+        sts_lite_t old;
+        memset(&old, 0, sizeof(old));
+        old.output_rate = 44100;
+        init_defaults(&old);
+        set_param(&old, "state",                      /* a two-voice (0.2.x) state */
+                  "{\"version\":3,\"ls\":2,\"lv\":50,\"rv\":25,\"l0\":-12,\"rg3\":0}");
+        assert(old.channel[0].pending_sample == 2 && old.channel[0].volume == 50);
+        assert(old.channel[0].sequence[0] == -12 && old.channel[1].gates[3] == 0);
+        assert(old.channel[2].volume == 100 && old.channel[3].gates[0] == 1);
+        assert(old.channel[2].pending_sample == 0 && old.channel[3].sequence[0] == -24);
+    }
     set_param(&restored, "pitch_range", "12");
     assert(restored.pitch_range == 60);
     set_param(&restored, "state", "{\"range\":12}");
@@ -397,9 +499,17 @@ int main(void) {
     assert(get_param(&s, "ui_hierarchy", ui_contract, sizeof(ui_contract)) == 0);
     assert(ui_contract[0] == '\0');
     assert(get_param(&s, "grid_hierarchy", ui_contract, sizeof(ui_contract)) > 0);
-    assert(strstr(ui_contract, "STS Lite") != NULL);
-    assert(strstr(ui_contract, "\"knobs\":[\"volume\",\"pitch\"]") != NULL);
-    assert(strstr(ui_contract, "\"knobs\":[\"base_pitch\",\"root\"") != NULL);
+    assert(strstr(ui_contract,
+        "\"knobs\":[\"vol_a\",\"vol_b\",\"vol_c\",\"vol_d\",\"pitch\"]") != NULL);
+    assert(strstr(ui_contract,
+        "\"knobs\":[\"vol_a\",\"vol_b\",\"vol_c\",\"vol_d\",\"base_pitch\",\"root\"") != NULL);
+    {
+        /* tests/test_ui.mjs drives the page controller with this exact
+         * contract. */
+        FILE *h = fopen("build/native/grid_hierarchy.json", "w");
+        assert(h && fputs(ui_contract, h) >= 0);
+        fclose(h);
+    }
     assert(strstr(ui_contract, "\"label\":\"Scale\"") != NULL);
     assert(get_param(&s, "chain_params", ui_contract, sizeof(ui_contract)) > 0);
     assert(strstr(ui_contract, "\"key\":\"sample\"") == NULL);

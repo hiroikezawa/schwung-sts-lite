@@ -14,7 +14,7 @@
 #include "host/plugin_api_v1.h"
 #include "sts_playback_engine.h"
 
-#define STS_CHANNELS 2
+#define STS_CHANNELS 4
 #define STS_SLOTS 10
 #define STS_STEPS 16
 #define STS_PATH_MAX 512
@@ -25,7 +25,7 @@
 #define STS_NORMALIZED_PEAK 0.98f /* interpolation headroom */
 /* Longer files are cut to their first five seconds. Every slot is resident,
  * and the loader lives inside MoveOriginal, so this bounds the worst case at
- * 20 slots x 5 s rather than at whatever someone drops in the folder. */
+ * 40 slots x 5 s rather than at whatever someone drops in the folder. */
 #define STS_MAX_SECONDS 5u
 #define STS_MIN_SOURCE_RATE 1000u
 #define STS_MAX_SOURCE_RATE 384000u
@@ -33,12 +33,15 @@
 /* ~1.5 ms: a retrigger, a gate cut, a sample end or a transport stop ramps
  * instead of jumping, so no 1/16 boundary is a click. */
 #define STS_DECLICK_FRAMES 64
-/* A sits left of centre and B right, each STS_PAN of the way to the edge.
- * Constant-amplitude law: a voice's two gains sum to 1, so A and B -- which
- * retrigger on the same frame -- can never sum past full scale. */
-#define STS_PAN 0.30f
-#define STS_PAN_NEAR ((1.0f + STS_PAN) * 0.5f)
-#define STS_PAN_FAR ((1.0f - STS_PAN) * 0.5f)
+/* Per-voice pan, -1 hard left .. +1 hard right: A 30 % left, B 30 % right,
+ * C 50 % left, D 50 % right. Constant-amplitude law: a voice's two gains sum
+ * to 1. Four voices retrigger on the same frame, so their sum can pass full
+ * scale; render_frame clamps rather than letting int16 wrap. */
+static const float STS_PAN[STS_CHANNELS] = {-0.30f, 0.30f, -0.50f, 0.50f};
+/* Sample folders under STS_USER_SAMPLE_ROOT and the module's samples/. */
+static const char *const STS_FOLDERS[STS_CHANNELS] = {"left", "right", "ch3", "ch4"};
+/* Per-voice prefix of the step keys in the saved state. */
+static const char STS_STATE_LETTERS[STS_CHANNELS] = {'l', 'r', 'c', 'd'};
 
 typedef struct {
     float *data;
@@ -359,7 +362,7 @@ static void *loader_main(void *arg) {
     sched_setaffinity(0, sizeof(cpus), &cpus);
     while (atomic_load_explicit(&s->loader_running, memory_order_acquire)) {
         while (sem_wait(&s->loader_sem) && errno == EINTR) {}
-        /* Checked per slot, not per wake: create_instance queues all twenty,
+        /* Checked per slot, not per wake: create_instance queues all forty,
          * and destroy_instance joins this thread from the SPI callback. */
         for (int ch = 0; ch < STS_CHANNELS; ++ch) {
             for (int n = 0; n < STS_SLOTS; ++n) {
@@ -377,7 +380,7 @@ static void *loader_main(void *arg) {
                 if (!fresh && atomic_load_explicit(&slot->default_path, memory_order_acquire)) {
                     char bundled[STS_PATH_MAX + 64];
                     snprintf(bundled, sizeof(bundled), "%s/samples/%s/%02d.wav",
-                             s->module_dir, ch == 0 ? "left" : "right", n + 1);
+                             s->module_dir, STS_FOLDERS[ch], n + 1);
                     fresh = load_wav(bundled, &s->loader_running);
                 }
                 if (path[0] && !fresh) {
@@ -522,13 +525,20 @@ static float render_channel(sts_lite_t *s, int ch) {
     return value * (float)c->volume / 100.0f;
 }
 
-/* Both voices, panned, into one stereo frame. Caller holds render_readers. */
+static float clamp_unit(float v) {
+    return v > 1.0f ? 1.0f : (v < -1.0f ? -1.0f : v);
+}
+
+/* Every voice, panned, into one stereo frame. Caller holds render_readers. */
 static void render_frame(sts_lite_t *s, int16_t *lr) {
-    float a = render_channel(s, 0), b = render_channel(s, 1);
-    float l = a * STS_PAN_NEAR + b * STS_PAN_FAR;
-    float r = a * STS_PAN_FAR + b * STS_PAN_NEAR;
-    lr[0] = (int16_t)lrintf(l * 32767.0f);
-    lr[1] = (int16_t)lrintf(r * 32767.0f);
+    float l = 0.0f, r = 0.0f;
+    for (int ch = 0; ch < STS_CHANNELS; ++ch) {
+        float v = render_channel(s, ch);
+        l += v * (1.0f - STS_PAN[ch]) * 0.5f;
+        r += v * (1.0f + STS_PAN[ch]) * 0.5f;
+    }
+    lr[0] = (int16_t)lrintf(clamp_unit(l) * 32767.0f);
+    lr[1] = (int16_t)lrintf(clamp_unit(r) * 32767.0f);
 }
 
 static void init_defaults(sts_lite_t *s) {
@@ -577,7 +587,7 @@ static void *create_instance(const char *module_dir, const char *json_defaults) 
         for (int ch = 0; ch < STS_CHANNELS; ++ch) {
             for (int n = 0; n < STS_SLOTS; ++n) {
                 snprintf(path, sizeof(path), "%s/%s/%02d.wav",
-                         STS_USER_SAMPLE_ROOT, ch == 0 ? "left" : "right", n + 1);
+                         STS_USER_SAMPLE_ROOT, STS_FOLDERS[ch], n + 1);
                 request_load(s, ch, n, path, 1);
             }
         }
@@ -626,6 +636,8 @@ static void set_path_param(sts_lite_t *s, const char *key, const char *value) {
     int ch = -1;
     if (indexed_key(key, "left_sample_", "_path", &slot)) ch = 0;
     else if (indexed_key(key, "right_sample_", "_path", &slot)) ch = 1;
+    else if (indexed_key(key, "ch3_sample_", "_path", &slot)) ch = 2;
+    else if (indexed_key(key, "ch4_sample_", "_path", &slot)) ch = 3;
     if (ch >= 0 && slot >= 1 && slot <= STS_SLOTS)
         request_load(s, ch, slot - 1, value, 0);
 }
@@ -662,9 +674,10 @@ static void set_param(void *instance, const char *key, const char *value) {
     if (!strcmp(key, "state")) {
         int restored;
         s->pitch_mode = 0;
-        s->channel[0].touched = s->channel[1].touched = 0;
+        for (int ch = 0; ch < STS_CHANNELS; ++ch) s->channel[ch].touched = 0;
         if (json_number(value, "steps", &restored)) s->steps = restored == 16 ? 16 : 8;
-        if (json_number(value, "edit", &restored)) s->edit_channel = clampi(restored, 0, 1);
+        if (json_number(value, "edit", &restored))
+            s->edit_channel = clampi(restored, 0, STS_CHANNELS - 1);
         if (json_number(value, "base", &restored)) s->base_pitch = clampi(restored, -48, 0);
         /* Old presets may carry a narrower range; this performance surface
          * always exposes the full five-octave width. */
@@ -675,22 +688,24 @@ static void set_param(void *instance, const char *key, const char *value) {
         if (json_number(value, "rs", &restored)) s->channel[1].pending_sample = clampi(restored, 0, 9);
         if (json_number(value, "lv", &restored)) s->channel[0].volume = clampi(restored, 0, 100);
         if (json_number(value, "rv", &restored)) s->channel[1].volume = clampi(restored, 0, 100);
-        for (int i = 0; i < STS_STEPS; ++i) {
-            char state_key[16];
-            snprintf(state_key, sizeof(state_key), "l%d", i);
-            if (json_number(value, state_key, &restored))
-                s->channel[0].sequence[i] = clampi(restored, -60, 60);
-            snprintf(state_key, sizeof(state_key), "r%d", i);
-            if (json_number(value, state_key, &restored))
-                s->channel[1].sequence[i] = clampi(restored, -60, 60);
-            snprintf(state_key, sizeof(state_key), "lg%d", i);
-            if (json_number(value, state_key, &restored)) s->channel[0].gates[i] = !!restored;
-            snprintf(state_key, sizeof(state_key), "rg%d", i);
-            if (json_number(value, state_key, &restored)) s->channel[1].gates[i] = !!restored;
+        if (json_number(value, "cs", &restored)) s->channel[2].pending_sample = clampi(restored, 0, 9);
+        if (json_number(value, "ds", &restored)) s->channel[3].pending_sample = clampi(restored, 0, 9);
+        if (json_number(value, "cv", &restored)) s->channel[2].volume = clampi(restored, 0, 100);
+        if (json_number(value, "dv", &restored)) s->channel[3].volume = clampi(restored, 0, 100);
+        /* Step keys: l/r for A/B (the original two), c/d for C/D. */
+        for (int ch = 0; ch < STS_CHANNELS; ++ch) {
+            for (int i = 0; i < STS_STEPS; ++i) {
+                char state_key[16];
+                snprintf(state_key, sizeof(state_key), "%c%d", STS_STATE_LETTERS[ch], i);
+                if (json_number(value, state_key, &restored))
+                    s->channel[ch].sequence[i] = clampi(restored, -60, 60);
+                snprintf(state_key, sizeof(state_key), "%cg%d", STS_STATE_LETTERS[ch], i);
+                if (json_number(value, state_key, &restored)) s->channel[ch].gates[i] = !!restored;
+            }
         }
         requantize(s);
-        s->channel[0].input_pitch = s->channel[0].sequence[s->channel[0].current_step];
-        s->channel[1].input_pitch = s->channel[1].sequence[s->channel[1].current_step];
+        for (int ch = 0; ch < STS_CHANNELS; ++ch)
+            s->channel[ch].input_pitch = s->channel[ch].sequence[s->channel[ch].current_step];
     } else if (!strcmp(key, "base_pitch")) {
         s->base_pitch = clampi(v, -48, 0);
         requantize(s);
@@ -705,10 +720,8 @@ static void set_param(void *instance, const char *key, const char *value) {
         requantize(s);
     } else if (!strcmp(key, "pitch_mode")) {
         s->pitch_mode = v ? 1 : 0;
-        if (!s->pitch_mode) {
-            s->channel[0].touched = 0;
-            s->channel[1].touched = 0;
-        }
+        if (!s->pitch_mode)
+            for (int ch = 0; ch < STS_CHANNELS; ++ch) s->channel[ch].touched = 0;
     } else if (!strcmp(key, "left_touch") || !strcmp(key, "left_pitch_touch")) {
         s->channel[0].touched = v ? 1 : 0;
         s->channel[0].touch_lease = v ? s->output_rate / 2 : 0;
@@ -803,7 +816,7 @@ static void render_frames(sts_lite_t *s, int16_t *out, int frames) {
     if (s->host && s->host->get_beat_position) beat = s->host->get_beat_position();
     int host_clock = isfinite(beat) && beat >= 0.0 && beat < 1e8;
     if (s->host && s->host->get_beat_position && !host_clock) {
-        /* Transport stopped: cut both voices through the declick ramp, and
+        /* Transport stopped: cut every voice through the declick ramp, and
          * let a stale touch lease run out rather than wait for the next
          * Play to spend it on recording. */
         for (int ch = 0; ch < STS_CHANNELS; ++ch) {
@@ -814,7 +827,9 @@ static void render_frames(sts_lite_t *s, int16_t *out, int frames) {
         }
         s->clock_step = -1;
         expire_touch(s, frames);
-        if (!s->channel[0].fade_left && !s->channel[1].fade_left) {
+        int fading = 0;
+        for (int ch = 0; ch < STS_CHANNELS; ++ch) fading |= s->channel[ch].fade_left > 0;
+        if (!fading) {
             memset(out, 0, (size_t)frames * 2u * sizeof(*out));
             return;
         }
