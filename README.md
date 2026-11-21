@@ -1,173 +1,217 @@
 # STS Lite
 
-Ableton Move上の [Schwung](https://github.com/charlesvestal/schwung) 用サウンドジェネレーターです。Eurorackモジュール **[Stereo Triggered Sampler（STS）](https://github.com/4ms/STS)** をもとに、機能を絞って作ったクローンです。再生部はSTSのファームウェア（MIT License、Dan Green・Hugo Paris）をもとにしています。元のSTSの作者・メーカーとは関係のない、非公式のものです。
+**English** | [日本語](README.ja.md)
 
-4つの独立したサンプラー **A**・**B**・**C**・**D** が、Moveの再生に合わせて16分音符ごとにサンプルを頭から鳴らし直します（リトリガー）。
+A sound generator for [Schwung](https://github.com/charlesvestal/schwung) on Ableton Move.
+It is a pared-down clone of the Eurorack module
+**[Stereo Triggered Sampler (STS)](https://github.com/4ms/STS)**. The playback is based on
+the STS firmware (MIT License, Dan Green and Hugo Paris). It is unofficial and not
+affiliated with the original STS's authors or maker.
 
-- **バリスピード**：ピッチはタイムストレッチなしで、テープやレコードと同じく再生速度ごと変わります。下げるほど遅く低く、上げるほど速く高くなります。
-- **ステップごとのピッチ**：A〜Dそれぞれ16ステップ分のピッチを持ち、ノブ8を回しながらリアルタイムに書き込めます（モーション録音）。
-- **出力**：Aは左へ30%、Bは右へ30%、Cは左へ50%、Dは右へ50%パンしています（中央から端までの割合）。1つの音の左右の和が1になるパン則です。4つが同時に大きく鳴ると合計がフルスケールを超えることがあり、その分は出力で頭打ちにします（数値が折り返して大きなノイズになることはありません）。音量はノブ1〜4で調整してください。
+Four independent samplers, **A**, **B**, **C** and **D**, restart their samples from the
+top on every 1/16 note in time with Move's transport (retrigger).
 
-A〜Dはサンプル、ピッチのパターン、ステップのON/OFF、音量をそれぞれ別に持ち、画面で編集していない音も止まらずに鳴り続けます。
+- **Varispeed**: pitch changes with playback speed, like tape or vinyl, with no time
+  stretching. Lower is slower and deeper, higher is faster and higher.
+- **Per-step pitch**: A–D each hold pitches for 16 steps, which you can write in real time
+  by turning knob 8 (motion recording).
+- **Output**: A is panned 30 % left, B 30 % right, C 50 % left and D 50 % right (as a share
+  of the way from centre to edge), with a pan law where each voice's left and right sum to
+  1. When all four play loudly at once the total can exceed full scale; the output simply
+  caps it (the numbers never wrap around into loud noise). Set the levels with knobs 1–4.
 
-## 元のSTSとの違い
+A–D each keep their own sample, pitch pattern, step on/off and level, and voices you are not
+editing on screen keep playing.
 
-**元のSTSから受け継いだところ**
+## Differences from the original STS
 
-- 独立した再生チャンネル（STSは2つ。STS LiteはA〜Dの4つに増やしています）
-- 10サンプルを1組にしたバンクから、鳴らすサンプルを選ぶ
-- トリガーで、サンプルを頭から鳴らし直す
-- ピッチは、再生速度ごと変わるバリスピード
+**Kept from the original STS**
 
-**省いたところ**
+- Independent playback channels (the STS has two; STS Lite raises it to four, A–D)
+- Choosing the sample to play from a bank of 10 samples
+- A trigger restarts the sample from the top
+- Varispeed pitch, changing with playback speed
 
-- 録音（STSはmicroSDに直接録音できます）
-- Start（再生開始位置）とLength（再生する長さ）、リバース再生
-- CV入力（1V/octのピッチ、サンプル選択など）とEnd Outトリガー
-- 複数のバンク：STSは最大600サンプル（10サンプル×60バンク）を切り替えられますが、STS LiteはA〜Dに10サンプルずつの1バンク固定です
-- ステレオ再生：サンプルはモノラルにまとめて鳴らし、Aを左へ30%、Bを右へ30%、Cを左へ50%、Dを右へ50%パンして出します
-- 長いファイル：各ファイルは先頭5秒だけ読み込みます
-- ピッチの範囲：STSの−10〜+4.3オクターブに対し、STS LiteはBASEを中心にした5オクターブです
+**Left out**
 
-**STS Liteで足したところ**
+- Recording (the STS records straight to microSD)
+- Start (playback start position), Length (how much to play) and reverse playback
+- CV inputs (1V/oct pitch, sample select and so on) and the End Out trigger
+- Multiple banks: the STS can switch between up to 600 samples (10 samples × 60 banks);
+  STS Lite has one fixed bank of 10 samples each for A–D
+- Stereo playback: samples are mixed to mono and output with A panned 30 % left, B 30 %
+  right, C 50 % left and D 50 % right
+- Long files: only the first 5 seconds of each file are loaded
+- Pitch range: where the STS covers −10 to +4.3 octaves, STS Lite covers 5 octaves around
+  BASE
 
-- 外からのトリガーの代わりに、Moveのテンポに同期した8/16ステップのシーケンサーが鳴らします
-- ステップごとのピッチと発音のON/OFF
-- スケールに沿ったピッチ入力（ROOT / SCALE）
-- ノブの動きでステップのピッチを書き込むモーション録音
-- ピッチのフレーズを自動で作るRANDOM
+**Added in STS Lite**
 
-## インストール
+- Instead of external triggers, an 8/16-step sequencer synced to Move's tempo plays them
+- Per-step pitch and hit on/off
+- Pitch entry that follows a scale (ROOT / SCALE)
+- Motion recording that writes step pitches from knob movement
+- RANDOM, which generates pitch phrases
 
-### リリースから入れる（おすすめ）
+## Installation
 
-1. [Releases](../../releases) から最新の `sts-lite-module.tar.gz` をダウンロードします。
-2. Schwung Manager（`http://<MoveのIP>:7700`）の Modules →「Install custom」で、そのファイルをアップロードします。
-   このリポジトリを手元に置いているなら、`scripts/install.py http://<MoveのIP>:7700 --package sts-lite-module.tar.gz` でも同じです。
-3. **Moveの電源を一度入れ直します。**
+### From a release (recommended)
 
-### ソースからビルドして入れる
+1. Download the latest `sts-lite-module.tar.gz` from [Releases](../../releases).
+2. Upload it in Schwung Manager (`http://<Move's IP>:7700`) under Modules → "Install custom".
+   With this repository on hand,
+   `scripts/install.py http://<Move's IP>:7700 --package sts-lite-module.tar.gz` does the same.
+3. **Power-cycle Move once.**
 
-aarch64用のクロスコンパイラ（`gcc-aarch64-linux-gnu`）とPython 3が必要です。
+### Building from source
+
+You need an aarch64 cross compiler (`gcc-aarch64-linux-gnu`) and Python 3.
 
 ```bash
-scripts/build.sh arm64                             # dist/sts-lite-module.tar.gz を作成
-python3 scripts/install.py http://<MoveのIP>:7700  # Schwung Manager経由でアップロード
+scripts/build.sh arm64                               # creates dist/sts-lite-module.tar.gz
+python3 scripts/install.py http://<Move's IP>:7700   # upload through Schwung Manager
 ```
 
-> **更新したら必ずMoveの電源を入れ直してください。** 一度読み込まれたDSP（dsp.so）は、スロットを読み直しても入れ替わりません。
+> **Always power-cycle Move after an update.** A DSP (dsp.so) that has been loaded is not
+> replaced by reloading the slot.
 
-## 使い始め
+## Getting started
 
-1. サンプルを置きます（「サンプル」の節）。最初から入っているサンプルはありません。
-2. スロットのシンセにSTS Liteを読み込み、そのシンセを開くと専用画面になり、32個のPADがSTS Liteの操作面に変わります。
-3. MoveのPlayで再生すると、A〜Dが16分音符ごとに鳴り始めます。**Moveが止まっている間は鳴りません。**
+1. Put samples in place (see "Samples"). No samples are included.
+2. Load STS Lite as a slot's synth and open that synth: you get its own screen, and the
+   32 pads turn into STS Lite's control surface.
+3. Press Play on Move and A–D start playing on every 1/16 note. **Nothing plays while Move
+   is stopped.**
 
-画面を離れても（Back、Menu、トラック長押し）鳴り続け、PADとその色はMoveに戻ります。STS LiteはMIDIノートには反応しません。音を出すのは内蔵のステップだけです。
+Leaving the screen (Back, Menu, holding a track) keeps it playing, and the pads and their
+colours go back to Move. STS Lite does not respond to MIDI notes; only its built-in steps
+make sound.
 
-## 画面
+## Screen
 
-一番上の行に、今の状態が出ます。
+The top line shows the current state.
 
 ```
 1/2 A01 P-24 3/8 ARM          Main
 ```
 
-| 表示 | 意味 |
+| Shown | Meaning |
 | --- | --- |
-| `1/2` | 今いるページ / ページ数。右端にもページ名（`Main` / `Scale`）が出ます |
-| `A01` | 編集中の音（A〜D）とサンプル番号（01〜10） |
-| `P-24` | 今鳴っているピッチ（半音。0がサンプル本来の速さ） |
-| `3/8` | 再生中のステップ / ステップ数。止まっている時は `STOP` |
-| `ARM` / `REC` | 録音待機中 / ノブ8に触れて書き込み中（録音OFFの時は何も出ません） |
+| `1/2` | Current page / number of pages. The page name (`Main` / `Scale`) also appears at the right |
+| `A01` | The voice being edited (A–D) and the sample number (01–10) |
+| `P-24` | The pitch playing now (semitones; 0 is the sample's own speed) |
+| `3/8` | Playing step / number of steps. `STOP` while stopped |
+| `ARM` / `REC` | Recording armed / writing while knob 8 is touched (nothing shown with recording off) |
 
-サンプル選択中（下記）は `SAMPLE A 01/10` に変わります。
+While choosing a sample (below) it changes to `SAMPLE A 01/10`.
 
-## PAD
+## Pads
 
 ```
-1段目  [ -- ][ -- ][ -- ][ -- ][ -- ][ -- ][RANDOM][REC]
-2段目  [SAMPLE][ -- ][ -- ][ -- ][ A  ][ B  ][ C  ][ D  ]
-3段目  16ステップ時：ステップ9-16
-4段目  ステップ1-8
+row 1  [ -- ][ -- ][ -- ][ -- ][ -- ][ -- ][RANDOM][REC]
+row 2  [SAMPLE][ -- ][ -- ][ -- ][ A  ][ B  ][ C  ][ D  ]
+row 3  with 16 steps: steps 9-16
+row 4  steps 1-8
 ```
 
-| PAD | 動作 |
+| Pad | Action |
 | --- | --- |
-| REC（一番右上） | モーション録音のON/OFF。明るい赤＝ON、暗い赤＝OFF。最初はOFFです |
-| RANDOM（RECの左隣） | 編集中の音に、新しいピッチのフレーズを作ります。ステップのON/OFFは変えません |
-| A / B / C / D（2段目の右4つ） | 編集する音を選びます。選んでいる音が明るく光ります。切り替えても全部鳴り続けます |
-| SAMPLE（2段目の左端） | 押している間はサンプル選択になり、4段目のPAD1〜8でサンプル1〜8、3段目の左2つでサンプル9・10を選びます。選んでいる番号が明るく光ります |
-| ステップ（4段目・3段目） | 押すたびにそのステップの発音をON/OFF。明るい光が再生位置です。OFFのステップでは、その音は鳴りません |
+| REC (top right) | Motion recording on/off. Bright red = on, dark red = off. Starts off |
+| RANDOM (left of REC) | Makes a new pitch phrase for the voice being edited. Does not change step on/off |
+| A / B / C / D (right four of row 2) | Choose the voice to edit. The chosen voice lights brightly. All of them keep playing when you switch |
+| SAMPLE (left end of row 2) | While held, you choose samples: pads 1–8 of row 4 pick samples 1–8, the left two of row 3 samples 9 and 10. The chosen number lights brightly |
+| Steps (rows 4 and 3) | Each press toggles that step's hit on/off. The bright light is the play position. On an off step that voice does not sound |
 
-- サンプルの切り替えは、次のステップの頭から反映されます。
-- 8ステップの時は3段目のPADは使いません（SAMPLEを押している間のサンプル9・10を除く）。
+- A sample change takes effect from the start of the next step.
+- With 8 steps the row 3 pads are not used (except samples 9 and 10 while SAMPLE is held).
 
-## ノブ
+## Knobs
 
-| ノブ | 動作 |
+| Knob | Action |
 | --- | --- |
-| 1〜4 | A・B・C・Dの音量（0〜100%）。編集中の音に関係なく、いつでも4つとも回せます |
-| 5〜7 | 未使用 |
-| 8 | 編集中の音のピッチ。1クリック＝スケールの1音 |
+| 1–4 | Levels of A, B, C and D (0–100 %). All four can be turned at any time, whichever voice is being edited |
+| 5–7 | Unused |
+| 8 | Pitch of the voice being edited. One click = one scale note |
 
-ノブ8は、今のスケールに含まれる音だけを順に選びます。音名と半音数が表示されます（例：`Db -23st`）。速く回しても、回した分だけ確実に進みます。
+Knob 8 steps only through notes in the current scale. It shows the note name and the number
+of semitones (e.g. `Db -23st`). Even turned quickly, it moves exactly as far as you turn it.
 
-### 2ページ目（Scale）
+### Page 2 (Scale)
 
-ジョグを回すと2ページ目に移ります（画面の左上が `2/2`、右上が `Scale`）。戻すと演奏用の画面（`1/2`、`Main`）に戻ります。
+Turn the jog wheel to go to page 2 (the top left shows `2/2`, the top right `Scale`). Turn
+back for the performance screen (`1/2`, `Main`).
 
-| ノブ | 動作 |
+| Knob | Action |
 | --- | --- |
-| 1〜4 | A・B・C・Dの音量（1ページ目と同じ） |
-| 5 BASE | ピッチの中心。−48 / −36 / −24 / −12 / 0 半音（最初は−24） |
-| 6 ROOT | スケールの主音（C〜B。最初はC） |
-| 7 SCALE | chromatic / major / minor / dorian / phrygian / lydian / mixolydian / locrian / pentatonic（最初はphrygian） |
-| 8 STEPS | 8 / 16ステップ（最初は8。A〜D共通） |
+| 1–4 | Levels of A, B, C and D (same as page 1) |
+| 5 BASE | The pitch centre. −48 / −36 / −24 / −12 / 0 semitones (starts at −24) |
+| 6 ROOT | Root of the scale (C–B, starts at C) |
+| 7 SCALE | chromatic / major / minor / dorian / phrygian / lydian / mixolydian / locrian / pentatonic (starts at phrygian) |
+| 8 STEPS | 8 / 16 steps (starts at 8; shared by A–D) |
 
-ノブ8で選べる範囲は、BASEを中心に上下30半音（5オクターブ）です。ただし−60〜+60半音を超えることはありません。たとえば最初の設定（BASE −24）なら−54〜+6半音です。−12半音で半分の速さ（1オクターブ下）、+12半音で倍の速さ（1オクターブ上）になります。
+Knob 8's range is 30 semitones either side of BASE (5 octaves), never beyond −60 to +60
+semitones. With the initial setting (BASE −24), for example, it is −54 to +6 semitones.
+−12 semitones is half speed (an octave down), +12 semitones double speed (an octave up).
 
-スケールは**入力の時だけ**かかります。ROOTやSCALEを後から変えても、記録済みのピッチは書き換わりません。
+The scale applies **only at entry**. Changing ROOT or SCALE later does not rewrite pitches
+already recorded.
 
-## モーション録音
+## Motion recording
 
-ステップごとのピッチを、ノブ8の動きで書き込みます。
+Writes per-step pitches from knob 8's movement.
 
-1. RECをONにします（明るい赤。画面に `ARM`）。
-2. Moveを再生します。
-3. **ノブ8に触れている間だけ**記録されます（画面に `REC`）。再生位置が通過したステップに、その時のピッチが書き込まれます。触れたまま回せば、回した音程がステップに並びます。
-4. 指を離すと記録が止まります。
+1. Turn REC on (bright red; `ARM` on screen).
+2. Play Move.
+3. It records **only while you touch knob 8** (`REC` on screen). Each step the play position
+   passes gets the pitch of that moment. Turning while touching lays the turned pitches out
+   across the steps.
+4. Letting go stops recording.
 
-- 記録したピッチは、毎ループそのステップで鳴ります。
-- 再生していない時は再生位置がないので記録されません。
-- RECの状態は保存されません。セットを開き直すと必ずOFFから始まります。
-- パターンに動きがある間、ノブ8のつまみは、ノブの位置（入力するピッチ）とは別に、今のステップで鳴っているピッチを動く値として表示します。ノブ8に触れている間は、画面の上にも `ノブの値>鳴っている値st` の形で出ます。
+- Recorded pitches play on their step every loop.
+- Nothing is recorded while not playing, because there is no play position.
+- The REC state is not saved. Reopening the set always starts with it off.
+- While the pattern has movement, knob 8's dial shows the pitch playing on the current step
+  as a moving value, separate from the knob's position (the pitch you enter). While you
+  touch knob 8 it is also shown at the top of the screen as `knob value>playing valuest`.
 
 ## RANDOM
 
-RANDOM（一番右上の左隣のPAD）を押すと、**編集中の音（A〜Dのどれか）のピッチのパターン**を、新しいフレーズで置き換えます。
+Pressing RANDOM (the pad left of the top-right one) replaces **the pitch pattern of the
+voice being edited (one of A–D)** with a new phrase.
 
-### 変わるもの・変わらないもの
+### What changes and what does not
 
-- 変わるのは、編集中の音の、今のステップ数（8または16）分のピッチだけです。8ステップの時、ステップ9〜16は変わりません。
-- ステップのON/OFF、サンプル、音量、ほかの音は変わりません。
-- やり直し（元に戻す）はありません。気に入らなければ、もう一度押して別のフレーズにします。
-- モーション録音中にノブ8に触れていても、押した時点で書き込みは止まります。
+- Only the edited voice's pitches change, for the current number of steps (8 or 16). With
+  8 steps, steps 9–16 are not changed.
+- Step on/off, samples, levels and the other voices do not change.
+- There is no undo. If you do not like it, press again for a different phrase.
+- Even if knob 8 is touched during motion recording, writing stops at the moment you press.
 
-### フレーズの作り方
+### How the phrase is made
 
-1. **元フレーズを選ぶ**：内蔵の6種類（各8音）から1つを選びます。その音で前回選ばれたものと同じになった時は、残りの5つから選び直すので、続けて押しても同じ元フレーズは続きません。
-2. **半分の音をずらす**：各ステップについて、50%の確率で、−12 / −7 / −5 / −3 / −2 / −1 / +1 / +2 / +3 / +5 / +7 / +12半音のどれかをランダムに足します（オクターブ、5度、4度、3度、2度、半音の上下）。
-3. **音域に収める**：ノブ8の範囲（BASEを中心に上下30半音）からはみ出した音は、オクターブ単位で上げ下げして範囲内に入れます。
-4. **スケールに合わせる**：今のROOT / SCALEに含まれない音は、範囲内でいちばん近いスケールの音に寄せます（上下の距離が同じなら下の音）。
+1. **Pick a source phrase**: one of six built-in phrases (8 notes each) is chosen. If it is
+   the same one chosen last time for that voice, it is re-picked from the other five, so the
+   same source phrase never comes twice in a row.
+2. **Shift half the notes**: for each step, with a 50 % chance, one of −12 / −7 / −5 / −3 /
+   −2 / −1 / +1 / +2 / +3 / +5 / +7 / +12 semitones is added at random (octave, fifth,
+   fourth, third, second, semitone, up or down).
+3. **Fit the range**: notes outside a range from a fifth below (−7 semitones) to 17
+   semitones above the edited voice's knob 8 note are moved up or down by octaves into it.
+   So turning knob 8 before pressing changes the phrase's height. When knob 8 is near the
+   ends of BASE's range (30 semitones either side), the whole range is shifted to stay
+   within BASE's range.
+4. **Fit the scale**: notes not in the current ROOT / SCALE are moved to the nearest scale
+   note within the range (the lower one on a tie).
 
-16ステップの時は、8音の元フレーズを2回くり返した上に、手順2〜4をステップごとに別々にかけます。そのため、前半と後半は似ていますが、たいてい少しずつ違います。
+With 16 steps, the 8-note source phrase is repeated twice and steps 2–4 are applied to each
+step separately. So the first and second halves are similar but usually a little different.
 
-### 元フレーズ
+### Source phrases
 
-半音（0＝サンプル本来の速さ）で表すと、次のとおりです。実際に鳴る高さは、ここに手順2〜4をかけたものなので、この値そのものにはなりません。
+In semitones (0 = the sample's own speed) they are as below. What actually plays is these
+with steps 2–4 applied, so it is not these values as such.
 
-| # | ステップ1〜8 |
+| # | Steps 1–8 |
 | --- | --- |
 | 1 | −7, +5, −7, −9, +34, +46, −16, −9 |
 | 2 | 0, −9, +7, +34, +48, +12, +10, −9 |
@@ -176,60 +220,88 @@ RANDOM（一番右上の左隣のPAD）を押すと、**編集中の音（A〜D�
 | 5 | +44, −4, +19, −11, −7, +7, +8, +34 |
 | 6 | +44, +43, +17, +29, +19, +51, −16, −24 |
 
-### 乱数について
+### About the random numbers
 
-乱数は、モジュールを読み込むたびに同じ種（シード）から始まり、A〜Dで共通です。そのため、読み込んでからのRANDOMの押し方（どの音で何回押したか）と、ROOT / SCALE / BASE / ステップ数が同じなら、毎回同じフレーズの並びになります。乱数の状態はセットやプリセットに保存されません。
+The random numbers start from the same seed every time the module is loaded, and are shared
+by A–D. So if the RANDOM presses since loading (which voice, how many times) and knob 8 /
+ROOT / SCALE / BASE / number of steps are the same, you get the same sequence of phrases
+every time. The random state is not saved in sets or presets.
 
-## サンプル
+## Samples
 
-次の場所にWAVを置きます。Schwung Managerのファイル画面からアップロードできます。モジュールを更新しても消えません。
-
-```
-/data/UserData/UserLibrary/Samples/STS Lite/left/01.wav 〜 10.wav    （A用）
-/data/UserData/UserLibrary/Samples/STS Lite/right/01.wav 〜 10.wav   （B用）
-/data/UserData/UserLibrary/Samples/STS Lite/ch3/01.wav 〜 10.wav     （C用）
-/data/UserData/UserLibrary/Samples/STS Lite/ch4/01.wav 〜 10.wav     （D用）
-```
-
-- 形式：PCM 16 / 24 / 32bit または32bit浮動小数点、モノラルまたはステレオ（ステレオはモノラルにまとめます）、1〜384kHz。
-- 各ファイルは**先頭5秒まで**読み込み、残りは無視します。1ステップで使うのは、120BPMで一番高いピッチ（+30半音）でも約0.7秒なので、通常の使い方では違いは出ません。
-- 読み込み時に、先頭の無音を切り詰め（最初に音が出る位置から再生）、ピークを揃えます（−0.2dBFS）。ほぼ無音のファイルは持ち上げずにそのままにします。ディスク上のWAVは変更しません。
-- 読み込みはモジュールの起動時です。置いた後はMoveを再起動してください。
-
-## 音のしくみ
-
-- 各ステップの頭で、そのステップのピッチでサンプルを最初から鳴らし直します。サンプルがステップより短ければ、そこで音が途切れます。
-- 4点エルミート補間でバリスピード再生します。サンプルのサンプルレートの違いは自動で補正します。
-- リトリガー、OFFのステップ、サンプルの終わり、停止の切れ目には約1.5msのフェードをかけ、プチッというクリックが出ないようにしています。
-- STS Liteは自分のテンポで動き、MIDIを受けないため、`capabilities.requires_continuous_processing` を宣言して、Schwungの無音時の休止を止めています（Schwung 1.7.3以降）。これがないと、停止中に休止したスロットでは、Playを押してから最初の数ステップが鳴らないことがあります。
-
-## 保存される内容
-
-セットやプリセットに、A〜Dそれぞれの16ステップ分のピッチとON/OFF、サンプル番号、音量、BASE / ROOT / SCALE / STEPS、編集中の音（A〜D）が保存されます。古い8ステップ版や2音（A・Bだけ）の版の保存データもそのまま読めます。その場合C・Dは最初の状態（サンプル1、音量100%、全ステップON、ピッチ−24）になります。
-
-## 開発
+Put WAVs in the following places. You can upload them from Schwung Manager's file screen.
+They survive module updates.
 
 ```
-scripts/test.sh            # ネイティブビルド＋エンジンテスト（ASan/UBSan）＋UIテスト＋ARM64ビルドとABI確認
-scripts/build.sh arm64     # Move用ビルド：dist/sts-lite-module.tar.gz
-scripts/install.py http://<MoveのIP>:7700   # Schwung Manager経由でインストール
+/data/UserData/UserLibrary/Samples/STS Lite/left/01.wav to 10.wav    (for A)
+/data/UserData/UserLibrary/Samples/STS Lite/right/01.wav to 10.wav   (for B)
+/data/UserData/UserLibrary/Samples/STS Lite/ch3/01.wav to 10.wav     (for C)
+/data/UserData/UserLibrary/Samples/STS Lite/ch4/01.wav to 10.wav     (for D)
 ```
 
-UIテストはMoveと同じSchwungのページコントローラで画面を描くので、Schwungのチェックアウトが必要です。既定は隣の `../schwung` で、`SCHWUNG_ROOT` でも指定できます。WSLでは、nodeが無ければWindows側の `node.exe` を使います。
+- Format: PCM 16 / 24 / 32-bit or 32-bit float, mono or stereo (stereo is mixed to mono),
+  1–384 kHz.
+- Each file is loaded **up to its first 5 seconds**; the rest is ignored. One step uses
+  about 0.7 s even at the highest pitch (+30 semitones) at 120 BPM, so normal use is not
+  affected.
+- On load, leading silence is trimmed (playback starts where the sound first appears) and
+  peaks are evened out (−0.2 dBFS). Near-silent files are left as they are, not raised. The
+  WAVs on disk are not changed.
+- Loading happens when the module starts. Restart Move after putting samples in place.
 
-| ファイル | 内容 |
+## How it sounds the way it does
+
+- At the start of each step the sample restarts from the top at that step's pitch. If the
+  sample is shorter than the step, the sound stops there.
+- Varispeed playback uses 4-point Hermite interpolation. Differences in the samples' sample
+  rates are corrected automatically.
+- Retriggers, off steps, the end of a sample and stops get a fade of about 1.5 ms so they do
+  not click.
+- STS Lite runs on its own tempo and receives no MIDI, so it declares
+  `capabilities.requires_continuous_processing` to stop Schwung parking it when silent
+  (Schwung 1.7.3 or later). Without this, a slot parked while stopped can miss the first few
+  steps after Play.
+
+## What is saved
+
+Sets and presets save, for each of A–D, the pitch and on/off of 16 steps, the sample number
+and the level, plus BASE / ROOT / SCALE / STEPS and the voice being edited (A–D). Saved data
+from the old 8-step version and the two-voice (A and B only) version loads as is; C and D
+then start in their initial state (sample 1, level 100 %, all steps on, pitch −24).
+
+## Development
+
+```
+scripts/test.sh            # native build + engine tests (ASan/UBSan) + UI tests + ARM64 build and ABI check
+scripts/build.sh arm64     # build for Move: dist/sts-lite-module.tar.gz
+scripts/install.py http://<Move's IP>:7700   # install through Schwung Manager
+```
+
+The UI tests draw the screen with the same Schwung page controller as Move, so they need a
+Schwung checkout. The default is `../schwung` next to this repository; `SCHWUNG_ROOT` sets
+it too. On WSL, if there is no node, the Windows `node.exe` is used.
+
+| File | Contents |
 | --- | --- |
-| `dsp/sts_lite.c` | プラグインAPI v2の窓口、WAVの読み込み（ワーカースレッド）、ステップのクロック追従、再生とフェード |
-| `dsp/performance.h` | 画面用のパラメータ、RANDOM、状態の保存/復元 |
-| `dsp/sts_playback_engine.{h,c}` | 再生エンジン（バリスピードとエルミート補間） |
-| `ui_core_v0300.mjs` | 画面とPADの操作（Schwungのページコントローラを使用） |
-| `ui_chain.js` | それをSchwungの画面につなぐ部分 |
+| `dsp/sts_lite.c` | The plugin API v2 entry points, WAV loading (worker thread), following the step clock, playback and fades |
+| `dsp/performance.h` | Parameters for the screen, RANDOM, state save / restore |
+| `dsp/sts_playback_engine.{h,c}` | Playback engine (varispeed and Hermite interpolation) |
+| `ui_core_v0302.mjs` | Screen and pad handling (uses Schwung's page controller) |
+| `ui_chain.js` | Connects it to Schwung's screen |
 
-音声処理の経路ではメモリ確保もロックもしません。サンプルの読み込みは、優先度を通常に下げてコア0〜2に移したワーカースレッドだけが行い、モジュールを外すと読み込み途中でもすぐ中断します。`ui_core_v0300.mjs` の番号はQuickJSのキャッシュを避けるためのもので、中身を変えた時だけ上げます。
+The audio path does no memory allocation or locking. Samples are loaded only by a worker
+thread lowered to normal priority and moved to cores 0–2, and removing the module stops it
+at once, even mid-load. The number in `ui_core_v0302.mjs` is there to avoid QuickJS's cache
+and is only raised when the contents change.
 
-## ライセンス
+## Licence
 
-STS Lite は MIT License です（`LICENSE`）。もとにした作品のライセンスは `THIRD_PARTY_LICENSES.md` にまとめています。
+STS Lite is under the MIT License (`LICENSE`). The licences of the works it is based on are
+collected in `THIRD_PARTY_LICENSES.md`.
 
-- **STSのファームウェア**：MIT License、Copyright (c) 2017 Dan Green and Hugo Paris。再生部（4点エルミート補間によるバリスピード再生と、ステレオの左右平均によるモノラル化）は、これをもとにしています。使っているのはソフトウェアだけで、STSのハードウェア設計（CC BY-NC-SA 4.0）とSTSのサンプル音源は含みません。
-- **Schwungのヘッダ**：`third_party/schwung/host/plugin_api_v1.h` はSchwungのプラグインAPIのヘッダで、MIT License、Copyright (c) Charles Vestal です（`third_party/schwung/LICENSE`）。
+- **The STS firmware**: MIT License, Copyright (c) 2017 Dan Green and Hugo Paris. The playback
+  (varispeed with 4-point Hermite interpolation, and mono mixing by averaging left and right)
+  is based on it. Only the software is used; the STS hardware design (CC BY-NC-SA 4.0) and
+  the STS sample sounds are not included.
+- **The Schwung header**: `third_party/schwung/host/plugin_api_v1.h` is the Schwung plugin API
+  header, MIT License, Copyright (c) Charles Vestal (`third_party/schwung/LICENSE`).
