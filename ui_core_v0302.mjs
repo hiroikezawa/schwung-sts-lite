@@ -174,6 +174,13 @@ export function createUi(d) {
         if(!intent)return;
         withMainKnobs(()=>{
             if(intent.type==="touch"){
+                /* Touching a voice's volume knob (K1-K4, vol_a..vol_d on
+                 * every page) makes that voice the edited one, like its pad. */
+                const vol=/^vol_([a-d])$/.exec(bare(c.keyAt(intent.slot)||""));
+                if(intent.down&&vol){
+                    const ch=VOICES.indexOf(vol[1].toUpperCase());
+                    if(ch!==st.channel){set("edit_channel",ch);paint();}
+                }
                 if(!intent.down&&intent.slot===7){releaseTouch();return;}
                 else if(intent.down&&bare(c.keyAt(intent.slot))==="pitch"){
                     st.pitchHeld=true;st.lastBeat=d.now();d.setParam("touch","pitch,1");

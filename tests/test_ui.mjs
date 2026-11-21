@@ -10,7 +10,7 @@ const from=p=>import(new URL(p,root));
 const {createController}=await from("src/shared/param_pages/page_controller.mjs");
 const {decodeInput,applyInput}=await from("src/shared/param_pages/page_input.mjs");
 const {createFramebuffer,drawContext}=await from("tools/param-pages/harness.mjs");
-import {createUi,noteTable} from "../ui_core_v0300.mjs";
+import {createUi,noteTable} from "../ui_core_v0302.mjs";
 const meta=JSON.parse(fs.readFileSync(new URL("../module.json",import.meta.url)));
 /* The hierarchy the DSP serves as grid_hierarchy, written by test_engine. */
 const hierarchy=JSON.parse(fs.readFileSync(new URL("../build/native/grid_hierarchy.json",import.meta.url)));
@@ -127,6 +127,15 @@ assert(ui.state.controller.page.keys.length===8);
 ui.onMidi([176,14,127]);tick();
 ui.onMidi([144,7,127]);assert(touched);
 press(89);assert(!touched);
+ui.onMidi([144,2,127]);ui.onMidi([128,2,0]);
+assert.equal(values.edit_channel,"2","touching K3 (Vol C) edits voice C");
+assert.equal(ui.state.channel,2);
+ui.onMidi([176,14,1]);tick(20);
+ui.onMidi([144,3,127]);ui.onMidi([128,3,0]);
+assert.equal(values.edit_channel,"3","K4 (Vol D) switches voice on page 2 too");
+ui.onMidi([176,14,127]);tick(20);
+ui.onMidi([144,7,127]);ui.onMidi([128,7,0]);
+assert.equal(values.edit_channel,"3","touching K8 (pitch) keeps the voice");
 for(let i=0;i<80;++i){
  const slot=i%8;
  ui.onMidi([144,slot,127]);

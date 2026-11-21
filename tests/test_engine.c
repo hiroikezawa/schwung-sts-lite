@@ -195,6 +195,26 @@ int main(void) {
     assert(s.channel[1].sequence[15] == -53);
     set_param(&s, "randomize", "1");
     for (int i=0;i<16;++i) assert(pitch_allowed(&s,s.channel[1].sequence[i]));
+    /* RANDOM folds around knob 8: -7..+17, slid inside BASE's range at its
+     * edges. The scale snap may land just outside the window, never the range. */
+    {
+        const int knobs[] = {-54, -45, -24, -5, 6};
+        for (int k = 0; k < 5; ++k) {
+            int lo = knobs[k] - 7, hi = knobs[k] + 17;
+            if (lo < pitch_min(&s)) { hi += pitch_min(&s) - lo; lo = pitch_min(&s); }
+            if (hi > pitch_max(&s)) { lo -= hi - pitch_max(&s); hi = pitch_max(&s); }
+            s.channel[1].input_pitch = knobs[k];
+            for (int press = 0; press < 50; ++press) {
+                set_param(&s, "randomize", "1");
+                for (int i = 0; i < 16; ++i) {
+                    int n = s.channel[1].sequence[i];
+                    assert(n >= lo - 3 && n <= hi + 3);
+                    assert(n >= pitch_min(&s) && n <= pitch_max(&s));
+                }
+            }
+        }
+        s.channel[1].input_pitch = -52;
+    }
     assert(s.channel[0].sequence[15] == -24);
     int saved_note = s.channel[1].sequence[0];
     set_param(&s, "root", "2");

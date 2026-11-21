@@ -29,7 +29,9 @@ static uint32_t phrase_random(sts_lite_t *s) {
 
 static void randomize_pitch(sts_lite_t *s) {
     /* Six built-in 8-note source phrases, half the notes moved by a random
-     * interval, folded into the configured range, then snapped to the scale. */
+     * interval, folded by octaves into a window around the edited voice's
+     * knob 8 (a fifth below to 17 semitones above, slid to stay inside the
+     * BASE range), then snapped to the scale. */
     static const int source[6][8] = {
         {53,65,53,51,94,106,44,51},{60,51,67,94,108,72,70,51},
         {58,61,67,72,75,106,111,43},{58,61,53,70,108,103,43,46},
@@ -40,12 +42,15 @@ static void randomize_pitch(sts_lite_t *s) {
     sts_channel_t *c = &s->channel[s->edit_channel];
     if (src == c->random_source) src = (src + 1 + (int)(phrase_random(s) % 5)) % 6;
     c->random_source = src;
+    int lo = c->input_pitch - 7, hi = c->input_pitch + 17;
+    if (lo < pitch_min(s)) { hi += pitch_min(s) - lo; lo = pitch_min(s); }
+    if (hi > pitch_max(s)) { lo -= hi - pitch_max(s); hi = pitch_max(s); }
     for (int i = 0; i < s->steps; ++i) {
         int n = source[src][i & 7] - 60;
         if ((phrase_random(s) & 255) < 128)
             n += mutations[phrase_random(s) % 12];
-        while (n > pitch_max(s)) n -= 12;
-        while (n < pitch_min(s)) n += 12;
+        while (n > hi) n -= 12;
+        while (n < lo) n += 12;
         c->sequence[i] = quantize_pitch(s, n);
     }
 }
